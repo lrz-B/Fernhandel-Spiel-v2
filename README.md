@@ -8,6 +8,11 @@ Handyspiel zum Referat „Fernhandel im Spätmittelalter“. Läuft im Browser, 
 3. nach Folie 13: Was tust du mit deinem Geld? (Stadtrat, Getreide, Fürst)
 4. Auflösung: Ergebnisse aller Entscheidungen, dann trifft die Pest zufällig, dann Schicksal.
 
+**Steuerung am Beamer** (Knopf, Pfeil rechts, Leertaste, Enter oder Clicker), kein Timer:
+Entscheidung starten → Entscheidung beenden → … → **Lösung aufdecken** (Verteilung der
+Schicksale) → **Rangliste zeigen** (Top 10 nach Geld). Beim Aufdecken rechnet der Beamer
+alle Ergebnisse aus, auch für Handys, die gerade gesperrt sind.
+
 ## Demo
 
 ```
@@ -95,5 +100,4 @@ Nach jeder Änderung den Testmodus einmal komplett durchspielen.
 
 Schutz eingebaut: Kommt keine Verbindung zustande, zeigt das Handy nach 15 Sekunden
 „Keine Verbindung“ statt endlos zu laden. Reißt sie ab, erscheint oben ein roter Hinweis,
-die Seite verbindet sich von selbst neu. Der Timer läuft nach der Serveruhr, also auf allen
-Geräten gleich. Der QR-Code kommt aus `js/vendor/` und braucht keinen fremden Server.
+die Seite verbindet sich von selbst neu. Der QR-Code kommt aus `js/vendor/` und braucht keinen fremden Server.

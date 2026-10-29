@@ -121,7 +121,7 @@ export function aufloesen(spieler, runde) {
   if (a.tot) s.tot = true;
 
   s.ergebnis[runde.id] = {
-    text: (gezoegert ? "Du hast zu lange gezögert. " : "") + a.text,
+    text: (gezoegert ? "Du hast nichts gewählt. " : "") + a.text,
     tag: a.tag || opt.id,
     option: opt.id,
     aenderung,

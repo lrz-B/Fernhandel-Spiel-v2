@@ -2,7 +2,7 @@
 // Nur für den Testmodus gedacht. Für das echte Spiel nicht nötig.
 import { verbinden } from "./backend.js";
 import { CHARAKTERE, RUNDEN } from "./content.js";
-import { neuerSpieler, optionErlaubt, aufloesen, normal } from "./engine.js";
+import { neuerSpieler, optionErlaubt, normal } from "./engine.js";
 
 const BOTS = 20;
 const NAMEN = ["Hinrich", "Gesa", "Tidemann", "Wobbeke", "Gerd", "Alheyd", "Johann", "Margarete", "Hermen", "Tale",
@@ -52,16 +52,13 @@ async function botsSpielen(status) {
       const erlaubt = runde.optionen.filter((o) => runde.typ === "quiz" || optionErlaubt(s, o));
       // Bots wählen etwas verzögert, damit die Balken auf dem Beamer wachsen
       setTimeout(async () => {
+        const jetzt = await db.lesen(`spiele/${code}/status`);
+        if (jetzt?.phase !== "offen" || jetzt.runde !== status.runde) return;  // Abstimmung schon vorbei
         const t = normal(await db.lesen(pfad));
         if (!t || t.wahl[runde.id]) return;
         t.wahl[runde.id] = zufall(erlaubt).id;
         await db.setzen(pfad, t);
-      }, 1000 + Math.random() * 8000);
-    }
-    if (["ergebnis", "ende"].includes(status.phase)) {
-      let neu = s;
-      for (let r = 0; r <= status.runde; r++) neu = aufloesen(neu, RUNDEN[r]);
-      if (JSON.stringify(neu) !== JSON.stringify(s)) await db.setzen(pfad, neu);
+      }, 500 + Math.random() * 4000);
     }
   }
 }

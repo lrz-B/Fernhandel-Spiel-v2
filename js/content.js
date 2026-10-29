@@ -14,7 +14,6 @@
 export const SPIEL = {
   titel: "Kaufleute, Koggen und die Pest",
   untertitel: "Ein Leben im Fernhandel, Lübeck im 14. Jahrhundert",
-  timerSekunden: 20,
   schlussfrage: "Wer profitierte vom Fernhandel – und wer zahlte den Preis?",
 };
 

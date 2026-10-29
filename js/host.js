@@ -1,9 +1,12 @@
-// Spielleitung (Beamer). Steuerung: Knopf, Pfeil rechts, Leertaste, Bild runter (Clicker).
-// Ablauf: Lobby -> Runde 1 -> Runde 2 -> Runde 3 -> Auflösung (Schicksale).
-// Ergebnisse werden erst am Ende ausgewertet.
+// Spielleitung (Beamer). Weiter mit Knopf, Pfeil rechts, Leertaste, Enter oder Clicker.
+// Ablauf (alles per Klick, kein Timer):
+//   Lobby -> Entscheidung 1 starten -> beenden -> Entscheidung 2 starten -> beenden -> ...
+//   -> Lösung aufdecken (Schicksale) -> Rangliste zeigen
+// Beim Aufdecken rechnet der Beamer die Ergebnisse ALLER Spieler aus und speichert sie.
+// So zählen auch Handys, die gerade gesperrt oder offline sind.
 import { verbinden, testmodus, fehlerAnzeigen, verbindungsHinweis } from "./backend.js";
 import { SPIEL, CHARAKTERE, RUNDEN, SCHICKSALE } from "./content.js";
-import { schicksal, normal, charakter, timerSekunden } from "./engine.js";
+import { schicksal, normal, aufloesen } from "./engine.js";
 
 const app = document.getElementById("app");
 const steuerung = document.getElementById("steuerung");
@@ -12,6 +15,7 @@ let db, code, status = null, spieler = {};
 // Runden mit Entscheidung (ohne die automatischen Ereignisse am Ende)
 const SPIELRUNDEN = RUNDEN.map((r, i) => ({ r, i })).filter((x) => !x.r.amEnde);
 const mehrereCharaktere = CHARAKTERE.length > 1;
+const RANGLISTE_PLAETZE = 10;
 
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
@@ -26,7 +30,8 @@ function spielerUrl() {
   return u.href;
 }
 
-const liste = () => Object.values(spieler).map((s) => normal(s));
+const liste = () => Object.entries(spieler).map(([id, s]) => ({ id, ...normal(s) }));
+const nr = () => SPIELRUNDEN.findIndex((x) => x.i === status?.runde) + 1;
 
 function balken(eintraege, gesamt) {
   const max = Math.max(1, gesamt);
@@ -36,9 +41,8 @@ function balken(eintraege, gesamt) {
       <span class="zahl">${n}</span></div>`).join("")}</div>`;
 }
 
-function restSekunden() {
-  if (!status?.endetUm) return null;
-  return Math.max(0, Math.ceil((status.endetUm - db.jetzt()) / 1000));
+function rangliste(alle) {
+  return [...alle].sort((a, b) => (b.werte.geld - a.werte.geld) || a.name.localeCompare(b.name));
 }
 
 function render() {
@@ -59,24 +63,31 @@ function render() {
     </div>
     <h2><span id="anzahl">${alle.length}</span> im Spiel &nbsp; <span class="klein">${proChar}</span></h2>
     <div class="namen">${alle.map((s) => `<span>${esc(s.name)}</span>`).join("")}</div>`;
-  } else if (status.phase === "offen" && runde) {
-    const nr = SPIELRUNDEN.findIndex((x) => x.i === status.runde) + 1;
+  } else if ((status.phase === "offen" || status.phase === "zu") && runde) {
+    const offen = status.phase === "offen";
     const geantwortet = alle.filter((s) => s.wahl[runde.id]).length;
-    const rest = restSekunden();
     const verteilung = runde.optionen.map((o) => [esc(o.text), alle.filter((s) => s.wahl[runde.id] === o.id).length]);
-    inhalt = `<p class="jahr">Entscheidung ${nr} von ${SPIELRUNDEN.length}</p>
+    inhalt = `<p class="jahr">Entscheidung ${nr()} von ${SPIELRUNDEN.length}</p>
       <h1>${esc(runde.titel)}</h1><p class="frage">${esc(runde.frage)}</p>
-      <p id="timer" class="timer ${rest === 0 ? "um" : ""}">${rest === 0 ? "Zeit um!" : `⏳ ${rest} s`}</p>
+      <p class="timer ${offen ? "" : "um"}">${offen ? "Abstimmung läuft" : "Abstimmung beendet"}</p>
       ${balken(verteilung, alle.length)}
       <p class="zaehler">${geantwortet} von ${alle.length} haben entschieden</p>`;
+  } else if (status.phase === "ende" && status.ansicht === "rangliste") {
+    const r = rangliste(alle);
+    const zeilen = r.slice(0, RANGLISTE_PLAETZE).map((s, i) => `
+      <li class="${s.tot ? "tot" : ""}"><span class="rang">${i + 1}.</span><span class="name">${esc(s.name)}${s.tot ? " 💀" : ""}</span>
+        <span class="geld">${s.werte.geld} Gulden</span></li>`).join("");
+    inhalt = `<h1>Rangliste: Wer hat am meisten Geld?</h1>
+      <ol class="rangliste">${zeilen}</ol>
+      <p class="zaehler">💀 = an der Pest gestorben – das Geld hat nichts genützt.</p>
+      <p class="frage">${esc(SPIEL.schlussfrage)}</p>`;
   } else if (status.phase === "ende") {
     const f = {};
     for (const s of alle) (f[schicksal(s).id] ??= []).push(s);
     const tote = alle.filter((s) => s.tot).length;
     inhalt = `<h1>Wie ist es euch ergangen?</h1>
       ${balken(SCHICKSALE.filter((x) => f[x.id]).map((x) => [`${x.emoji} ${esc(x.titel)}`, f[x.id].length]), alle.length)}
-      <p class="zaehler">💀 ${tote} von ${alle.length} an der Pest gestorben</p>
-      <p class="frage">${esc(SPIEL.schlussfrage)}</p>`;
+      <p class="zaehler">💀 ${tote} von ${alle.length} an der Pest gestorben</p>`;
   }
   app.innerHTML = inhalt;
   if (!status || status.phase === "lobby") qr();
@@ -88,37 +99,39 @@ function qr() {
   if (el && window.QRCode) new QRCode(el, { text: spielerUrl(), width: 260, height: 260 });
 }
 
-setInterval(() => {
-  const el = document.getElementById("timer");
-  if (!el || status?.phase !== "offen") return;
-  const rest = restSekunden();
-  el.textContent = rest === 0 ? "Zeit um!" : `⏳ ${rest} s`;
-  el.classList.toggle("um", rest === 0);
-}, 250);
-
-function offen(i) {
-  return { runde: i, phase: "offen", endetUm: db.jetzt() + timerSekunden(RUNDEN[i], SPIEL.timerSekunden) * 1000 };
+// Wertet alle Spieler aus, vergibt Ranglistenplätze und speichert alles.
+async function alleAuswerten() {
+  const alle = liste().map(({ id, ...s }) => {
+    let neu = s;
+    for (const r of RUNDEN) neu = aufloesen(neu, r);
+    return { id, ...neu };
+  });
+  const r = rangliste(alle);
+  r.forEach((s, i) => { s.platz = i + 1; s.von = r.length; });
+  await Promise.all(r.map(({ id, ...s }) => db.setzen(`spiele/${code}/spieler/${id}`, s)));
 }
 
 function naechsteAktion() {
   if (!status) return null;
-  if (status.phase === "lobby") return ["Entscheidung 1 starten", () => offen(SPIELRUNDEN[0].i)];
-  if (status.phase === "offen") {
-    const pos = SPIELRUNDEN.findIndex((x) => x.i === status.runde);
+  const pos = SPIELRUNDEN.findIndex((x) => x.i === status.runde);
+  if (status.phase === "lobby") return ["Entscheidung 1 starten", { runde: SPIELRUNDEN[0].i, phase: "offen" }];
+  if (status.phase === "offen") return [`Entscheidung ${pos + 1} beenden`, { runde: status.runde, phase: "zu" }];
+  if (status.phase === "zu") {
     const next = SPIELRUNDEN[pos + 1];
-    if (next) return [`Entscheidung ${pos + 2} starten`, () => offen(next.i)];
-    return ["Auflösung zeigen", () => ({ runde: RUNDEN.length - 1, phase: "ende" })];
+    if (next) return [`Entscheidung ${pos + 2} starten`, { runde: next.i, phase: "offen" }];
+    return ["Lösung aufdecken", { runde: RUNDEN.length - 1, phase: "ende", ansicht: "schicksale" }, alleAuswerten];
   }
+  if (status.phase === "ende" && status.ansicht !== "rangliste") return ["Rangliste zeigen", { ...status, ansicht: "rangliste" }];
   return null;
 }
 
 function renderSteuerung() {
   const a = naechsteAktion();
-  let naechste = null;
-  if (status?.phase === "lobby") naechste = SPIELRUNDEN[0]?.r;
-  if (status?.phase === "offen") naechste = SPIELRUNDEN[SPIELRUNDEN.findIndex((x) => x.i === status.runde) + 1]?.r;
+  let hinweis = "";
+  if (status?.phase === "lobby") hinweis = SPIELRUNDEN[0]?.r.folie;
+  if (status?.phase === "zu") hinweis = SPIELRUNDEN[SPIELRUNDEN.findIndex((x) => x.i === status.runde) + 1]?.r.folie;
   steuerung.innerHTML = `
-    <span class="klein">Spiel ${code}${testmodus ? " · Testmodus" : ""}${naechste?.folie ? ` · Nächste Entscheidung: ${esc(naechste.folie)}` : ""}</span>
+    <span class="klein">Spiel ${code}${testmodus ? " · Testmodus" : ""}${hinweis ? ` · Nächste Entscheidung: ${esc(hinweis)}` : ""}</span>
     ${a ? `<button id="weiter">${a[0]} ▶</button>` : ""}
     <button id="neu" class="leise">Neues Spiel</button>`;
   document.getElementById("weiter")?.addEventListener("click", weiter);
@@ -132,8 +145,12 @@ async function weiter() {
   const a = naechsteAktion();
   if (!a || sperre) return;
   sperre = true;                       // Doppelklicks am Clicker abfangen
-  setTimeout(() => (sperre = false), 600);
-  await db.setzen(`spiele/${code}/status`, a[1]());
+  try {
+    if (a[2]) await a[2]();            // z. B. erst alle auswerten, dann aufdecken
+    await db.setzen(`spiele/${code}/status`, a[1]);
+  } finally {
+    setTimeout(() => (sperre = false), 600);
+  }
 }
 
 document.addEventListener("keydown", (e) => {
