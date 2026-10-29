@@ -1,94 +1,429 @@
-# Erzeugt die 7 Schicksalsbilder als Comic-SVGs.
-import os, sys
-OUT = sys.argv[1]
-INK = "#2b2118"; SKIN = "#f2c9a0"
-S = f'stroke="{INK}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"'
+# Erzeugt die 7 Schicksalsbilder als Comic-SVGs (400 x 400).
+# Aufruf im Spielordner:  python img/bilder_erzeugen.py
+import os, re, random
 
-def hintergrund(ort):
-    s = f'<rect width="400" height="400" fill="#bfe3f2"/>'
-    s += f'<circle cx="335" cy="70" r="30" fill="#ffd95a"/>'
-    if ort == "hafen":
-        s += f'<rect y="250" width="400" height="60" fill="#5aa3c9"/>'
-        s += f'<path d="M40 245 h110 l-15 22 h-80 z" fill="#8a5a33" {S}/><path d="M95 245 v-80" {S}/><path d="M95 170 h45 v55 h-45 z" fill="#f4ecd8" {S}/>'
-        s += f'<rect y="300" width="400" height="100" fill="#c9a77c" {S}/>'
+OUT = os.path.dirname(os.path.abspath(__file__))
+INK = "#2b2118"
+SKIN, SKIN_TOT = "#f3c8a0", "#c9cdb0"
+
+
+def st(w=3.5):
+    return f'stroke="{INK}" stroke-width="{w}" stroke-linejoin="round" stroke-linecap="round"'
+
+
+# ---------------------------------------------------------------- Hintergründe
+def defs():
+    return f'''<defs>
+  <linearGradient id="tag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7cc4ec"/><stop offset="1" stop-color="#d9f0fb"/></linearGradient>
+  <linearGradient id="grau" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5d5a6e"/><stop offset="1" stop-color="#a9a6b3"/></linearGradient>
+  <linearGradient id="wasser" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3d8fbf"/><stop offset="1" stop-color="#25668f"/></linearGradient>
+  <linearGradient id="wasser_grau" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5f7c8c"/><stop offset="1" stop-color="#3f5866"/></linearGradient>
+  <radialGradient id="gold" cx=".35" cy=".35" r=".7"><stop offset="0" stop-color="#fff2a8"/><stop offset=".5" stop-color="#f2c230"/><stop offset="1" stop-color="#b9861a"/></radialGradient>
+</defs>'''
+
+
+def himmel(dunkel):
+    s = f'<rect width="400" height="400" fill="url(#{"grau" if dunkel else "tag"})"/>'
+    if dunkel:
+        for x, y, r in [(70, 60, 34), (110, 50, 40), (150, 62, 30), (270, 80, 36), (310, 70, 42), (350, 84, 30)]:
+            s += f'<circle cx="{x}" cy="{y}" r="{r}" fill="#45424f" opacity=".6"/>'
     else:
-        # Giebelhäuser
-        for x, c in [(0, "#d98c5f"), (100, "#c5674a"), (200, "#e0b36a"), (300, "#b9775a")]:
-            s += f'<path d="M{x} 300 V150 l50 -50 l50 50 V300 z" fill="{c}" {S}/>'
-            s += f'<rect x="{x+35}" y="170" width="30" height="35" fill="#fff6d8" {S}/>'
-        s += f'<rect y="300" width="400" height="100" fill="#a9a29a" {S}/>'
-        for i in range(0, 400, 50):
-            s += f'<path d="M{i} 335 h50 M{i+25} 365 h50" stroke="#8c857e" stroke-width="3"/>'
+        s += f'<circle cx="340" cy="62" r="28" fill="#ffe27a"/><circle cx="340" cy="62" r="40" fill="#ffe27a" opacity=".25"/>'
+        for x, y in [(70, 70), (230, 45)]:
+            s += (f'<g fill="#fff" opacity=".9"><circle cx="{x}" cy="{y}" r="18"/><circle cx="{x+20}" cy="{y-8}" r="22"/>'
+                  f'<circle cx="{x+44}" cy="{y}" r="17"/><rect x="{x}" y="{y}" width="44" height="17"/></g>')
     return s
 
-def figur(kleid, reich, gesicht, extras="", hut=True):
-    """Stehende Figur, Füße bei y=340, Mitte x=200."""
-    g = ""
-    g += f'<path d="M180 290 v50 M220 290 v50" {S}/>'
-    g += f'<path d="M168 342 h22 M210 342 h22" {S} stroke-width="8"/>'
-    g += f'<path d="M160 200 Q200 185 240 200 L255 300 H145 Z" fill="{kleid}" {S}/>'
+
+def giebelhaus(x, w, h, farbe, boden=300, stufen=4, dunkel=False):
+    """Lübecker Backstein-Treppengiebel."""
+    sw = w / 2 / (stufen + 1)
+    sh = 18
+    top = boden - h
+    pts = [(x, boden), (x, top)]
+    cx, cy = x, top
+    for _ in range(stufen):
+        cx += sw; pts.append((cx, cy)); cy -= sh; pts.append((cx, cy))
+    pts.append((x + w - (cx - x), cy))
+    cx2 = x + w - (cx - x)
+    for _ in range(stufen):
+        cy += sh; pts.append((cx2, cy)); cx2 += sw; pts.append((cx2, cy))
+    pts += [(x + w, top), (x + w, boden)]
+    d = "M" + " L".join(f"{a:.1f} {b:.1f}" for a, b in pts) + " Z"
+    s = f'<path d="{d}" fill="{farbe}" {st(3)}/>'
+    # Ziegelfugen
+    for yy in range(int(top + 12), boden, 14):
+        s += f'<path d="M{x+3} {yy} h{w-6}" stroke="#000" stroke-opacity=".08" stroke-width="2"/>'
+    fenster = "#3a3550" if dunkel else "#fff4c9"
+    for row in range(2):
+        for col in range(2):
+            fx = x + w * (0.22 + col * 0.36)
+            fy = top + 20 + row * 52
+            if fy + 34 < boden - 30:
+                s += f'<path d="M{fx:.1f} {fy+34} v-24 q{w*0.09:.1f} -14 {w*0.18:.1f} 0 v24 z" fill="{fenster}" {st(2.5)}/>'
+    # Tür
+    s += f'<path d="M{x+w*0.38:.1f} {boden} v-34 q{w*0.12:.1f} -16 {w*0.24:.1f} 0 v34 z" fill="#6b3b22" {st(2.5)}/>'
+    return s
+
+
+def stadt(dunkel=False):
+    s = himmel(dunkel)
+    farben = ["#b5523a", "#9c3f2e", "#c46a45", "#a84a36", "#8f3a2b"]
+    if dunkel:
+        farben = ["#7d4b42", "#6c4038", "#875448", "#744540", "#633a33"]
+    for i, (x, w, h) in enumerate([(-20, 100, 150), (78, 90, 185), (166, 100, 160), (264, 90, 195), (352, 90, 150)]):
+        s += giebelhaus(x, w, h, farben[i], dunkel=dunkel)
+    s += pflaster(dunkel)
+    return s
+
+
+def pflaster(dunkel=False, y0=300):
+    s = f'<rect y="{y0}" width="400" height="{400-y0}" fill="{"#8c8680" if dunkel else "#b9b0a3"}" {st(3)}/>'
+    rnd = random.Random(7)
+    for row, y in enumerate(range(y0 + 12, 400, 18)):
+        for x in range(-20 + (row % 2) * 18, 420, 36):
+            s += f'<ellipse cx="{x + rnd.randint(-3,3)}" cy="{y}" rx="15" ry="7" fill="#000" opacity=".07"/>'
+    return s
+
+
+def kogge(x, y, s=1.0, dunkel=False):
+    segel = "#d9d2c1" if dunkel else "#f6efdc"
+    return f'''<g transform="translate({x} {y}) scale({s})">
+  <path d="M0 -150 V0" {st(4)}/>
+  <path d="M-48 -140 h96 q8 50 0 100 h-96 q-8 -50 0 -100 z" fill="{segel}" {st(3)}/>
+  <path d="M-6 -134 h12 v82 h-12 z M-40 -96 h80 v12 h-80 z" fill="#b3261e" opacity=".85"/>
+  <path d="M-95 -10 q95 30 190 0 l-14 38 q-81 20 -162 0 z" fill="#7a4a28" {st(3)}/>
+  <path d="M-90 2 q90 26 180 0 M-86 14 q86 22 172 0" stroke="#4e2e17" stroke-width="2.5" fill="none"/>
+  <path d="M-95 -10 v-26 h34 v32 M95 -10 v-30 h-30 v34" fill="#8a5a33" {st(3)}/>
+  <path d="M0 -150 l26 8 l-26 8" fill="#b3261e" {st(2)}/>
+</g>'''
+
+
+def hafen(dunkel=False):
+    s = himmel(dunkel)
+    s += f'<path d="M0 205 l30 -40 l30 40 l35 -55 l35 55 h10 v40 h-140 z" fill="{"#6c4a42" if dunkel else "#a85a40"}" {st(2.5)} opacity=".85"/>'
+    s += f'<rect y="235" width="400" height="75" fill="url(#{"wasser_grau" if dunkel else "wasser"})"/>'
+    for y in (250, 268, 286):
+        for x in range(10, 400, 60):
+            s += f'<path d="M{x} {y} q10 -6 20 0" stroke="#fff" stroke-opacity=".5" stroke-width="2.5" fill="none"/>'
+    s += kogge(110, 262, 0.75, dunkel)
+    # Kaimauer und Steg
+    s += f'<rect y="300" width="400" height="100" fill="{"#8a7a68" if dunkel else "#c9a77c"}" {st(3)}/>'
+    for x in range(0, 400, 40):
+        s += f'<path d="M{x} 300 v100" stroke="#000" stroke-opacity=".08" stroke-width="2"/>'
+    s += f'<path d="M0 312 h400" stroke="#000" stroke-opacity=".12" stroke-width="3"/>'
+    return s
+
+
+def rathaus():
+    s = himmel(False)
+    s += f'<path d="M20 300 V120 h360 V300 z" fill="#a8432f" {st(3)}/>'
+    s += f'<path d="M20 120 V95 h40 v25 M100 120 V80 h40 v40 M180 120 V70 h40 v50 M260 120 V80 h40 v40 M340 120 V95 h40 v25" fill="#a8432f" {st(3)}/>'
+    for x in (60, 140, 220, 300):
+        s += f'<path d="M{x} 260 v-90 q20 -26 40 0 v90 z" fill="#3a2b2b" {st(3)}/>'
+        s += f'<path d="M{x+8} 200 v-30 q12 -16 24 0 v30 z" fill="#fff4c9" opacity=".9"/>'
+    s += f'<path d="M20 260 H380" {st(3)}/>'
+    s += f'<path d="M30 140 h20 v60 l-10 -10 l-10 10 z M350 140 h20 v60 l-10 -10 l-10 10 z" fill="#b3261e" {st(2.5)}/>'
+    s += f'<path d="M36 155 h8 M356 155 h8" stroke="#fff" stroke-width="3"/>'
+    s += pflaster(False)
+    return s
+
+
+# ---------------------------------------------------------------- Figur
+# Lokale Koordinaten: Füße bei y=0, Kopfmitte bei y=-196.
+
+def augen(art):
+    if art == "froh":
+        return (f'<path d="M-24 -200 q8 -10 16 0 M8 -200 q8 -10 16 0" {st(4)} fill="none"/>'
+                f'<path d="M-28 -214 q10 -6 20 -2 M8 -216 q10 -4 20 2" {st(3)} fill="none"/>')
+    if art == "normal":
+        return (f'<ellipse cx="-16" cy="-200" rx="6" ry="8" fill="{INK}"/><ellipse cx="16" cy="-200" rx="6" ry="8" fill="{INK}"/>'
+                f'<circle cx="-14" cy="-203" r="2" fill="#fff"/><circle cx="18" cy="-203" r="2" fill="#fff"/>'
+                f'<path d="M-26 -214 h18 M8 -214 h18" {st(3)}/>')
+    if art == "traurig":
+        return (f'<ellipse cx="-16" cy="-198" rx="6" ry="7" fill="{INK}"/><ellipse cx="16" cy="-198" rx="6" ry="7" fill="{INK}"/>'
+                f'<path d="M-28 -206 l18 -8 M28 -206 l-18 -8" {st(3.5)}/>'
+                f'<path d="M-20 -188 q-6 12 0 18 q6 -6 0 -18 z M22 -188 q-6 12 0 18 q6 -6 0 -18 z" fill="#5fb3e8" {st(1.5)}/>')
+    if art == "tot":
+        return f'<path d="M-24 -208 l14 14 M-10 -208 l-14 14 M10 -208 l14 14 M24 -208 l-14 14" {st(4)}/>'
+
+
+def mund(art):
+    return {
+        "lachen": f'<path d="M-18 -178 q18 22 36 0 z" fill="#8c2f1b" {st(3)}/><path d="M-12 -176 h24" stroke="#fff" stroke-width="4"/>',
+        "laecheln": f'<path d="M-14 -176 q14 12 28 0" {st(3.5)} fill="none"/>',
+        "muede": f'<path d="M-12 -172 q12 5 24 -2" {st(3.5)} fill="none"/>',
+        "traurig": f'<path d="M-14 -168 q14 -12 28 0" {st(3.5)} fill="none"/>',
+        "tot": f'<path d="M-14 -172 q5 -5 9 0 q5 5 9 0 q5 -5 9 0" {st(3)} fill="none"/><path d="M4 -170 q4 10 10 4" fill="#e07a7a" {st(2)}/>',
+    }[art]
+
+
+def kopf(reich, augen_art, mund_art, tot=False, hut=None, verband=False):
+    haut = SKIN_TOT if tot else SKIN
+    s = f'<rect x="-11" y="-160" width="22" height="16" fill="{haut}" {st(3)}/>'
+    s += f'<circle cx="-44" cy="-194" r="10" fill="{haut}" {st(3)}/><circle cx="44" cy="-194" r="10" fill="{haut}" {st(3)}/>'
+    s += f'<circle cx="0" cy="-196" r="44" fill="{haut}" {st(3.5)}/>'
+    if not tot:
+        s += f'<circle cx="-26" cy="-184" r="8" fill="#ff8a80" opacity=".45"/><circle cx="26" cy="-184" r="8" fill="#ff8a80" opacity=".45"/>'
+    else:
+        s += f'<circle cx="-22" cy="-160" r="4" fill="#5b3a4a" opacity=".7"/><circle cx="20" cy="-158" r="3" fill="#5b3a4a" opacity=".7"/>'
+    s += f'<path d="M-4 -196 q4 12 10 6" {st(3)} fill="none"/>'
     if reich:
-        g += f'<path d="M150 296 H250" stroke="#f4ecd8" stroke-width="10"/><path d="M160 200 Q200 185 240 200" stroke="#f4ecd8" stroke-width="10" fill="none"/>'
-    g += f'<path d="M163 215 L135 265 M237 215 L265 265" {S} stroke-width="12"/><path d="M163 215 L135 265 M237 215 L265 265" stroke="{kleid}" stroke-width="6"/>'
-    g += f'<circle cx="135" cy="268" r="9" fill="{SKIN}" {S}/><circle cx="265" cy="268" r="9" fill="{SKIN}" {S}/>'
-    g += f'<circle cx="200" cy="155" r="38" fill="{SKIN}" {S}/>'
-    g += gesicht
-    if hut:
-        farbe = "#7a1f2b" if reich else "#7a6a58"
-        g += f'<path d="M160 135 Q200 95 240 135 Z" fill="{farbe}" {S}/>'
-        if reich:
-            g += f'<path d="M160 135 Q200 128 240 135" stroke="#f4ecd8" stroke-width="8" fill="none"/>'
-    return g + extras
+        # gepflegter Bart
+        s += f'<path d="M-40 -186 q4 40 40 44 q36 -4 40 -44 q-8 22 -40 24 q-32 -2 -40 -24 z" fill="#6b4226" {st(3)}/>'
+    else:
+        s += "".join(f'<circle cx="{x}" cy="{y}" r="1.6" fill="{INK}" opacity=".6"/>'
+                     for x, y in [(-22, -168), (-14, -164), (-6, -162), (6, -162), (14, -164), (22, -168), (-18, -160), (18, -160)])
+    s += augen(augen_art) + mund(mund_art)
+    if hut == "chaperon":
+        s += (f'<path d="M-50 -226 q50 -52 100 0 q-50 14 -100 0 z" fill="#24212b" {st(3.5)}/>'
+              f'<path d="M-52 -228 q52 18 104 0 q4 10 -2 16 q-50 16 -100 0 q-6 -6 -2 -16 z" fill="#9a7650" {st(3)}/>'
+              + "".join(f'<circle cx="{x}" cy="-220" r="2" fill="{INK}"/>' for x in range(-40, 44, 12))
+              + f'<path d="M40 -238 q30 10 26 50 q-8 -20 -20 -30" fill="#24212b" {st(3)}/>')
+    elif hut == "barett":
+        s += (f'<path d="M-48 -224 q48 -50 96 0 q-48 12 -96 0 z" fill="#1f3a5f" {st(3.5)}/>'
+              f'<circle cx="26" cy="-238" r="7" fill="url(#gold)" {st(2.5)}/>'
+              f'<path d="M30 -244 q22 -30 6 -46 q4 26 -12 40" fill="#e8e0c8" {st(2.5)}/>')
+    elif hut == "muetze":
+        s += f'<path d="M-46 -214 q46 -60 92 0 q-46 10 -92 0 z" fill="#7a6a58" {st(3.5)}/><path d="M-30 -228 q30 -10 60 0" stroke="#5b4e40" stroke-width="3" fill="none"/>'
+    else:
+        # zerzauste Haare
+        s += f'<path d="M-42 -212 l6 -26 l10 14 l6 -24 l10 18 l8 -22 l8 20 l10 -18 l4 24 l12 -12 l-2 28 q-40 -16 -72 -2 z" fill="#5a3b24" {st(3)}/>'
+    if verband:
+        s += (f'<path d="M-46 -214 q46 -22 92 6" stroke="#fdfdfb" stroke-width="16" fill="none"/>'
+              f'<path d="M-46 -214 q46 -22 92 6" {st(2.5)} fill="none" stroke-dasharray="2 0"/>'
+              f'<path d="M-30 -222 l6 -4 M-10 -226 l6 -4 M10 -224 l6 -2" stroke="#e05a47" stroke-width="2"/>'
+              f'<ellipse cx="22" cy="-188" rx="9" ry="7" fill="#8a4fa0" opacity=".55"/>'
+              f'<path d="M-36 -184 l10 6 M-30 -186 l-2 10" stroke="#fdfdfb" stroke-width="5"/>')
+    return s
 
-GLUECK = f'<circle cx="186" cy="152" r="4" fill="{INK}"/><circle cx="214" cy="152" r="4" fill="{INK}"/><path d="M184 170 Q200 184 216 170" {S} fill="none"/>'
-NEUTRAL = f'<circle cx="186" cy="152" r="4" fill="{INK}"/><circle cx="214" cy="152" r="4" fill="{INK}"/><path d="M188 174 Q200 178 212 172" {S} fill="none"/>'
-TRAURIG = (f'<circle cx="186" cy="154" r="4" fill="{INK}"/><circle cx="214" cy="154" r="4" fill="{INK}"/>'
-           f'<path d="M176 142 l14 5 M224 142 l-14 5" {S}/><path d="M186 180 Q200 168 214 180" {S} fill="none"/>'
-           f'<path d="M218 160 q4 10 0 14" stroke="#4aa3df" stroke-width="5" fill="none"/>')
-TOT = (f'<path d="M180 152 q6 5 12 0 M208 152 q6 5 12 0" {S} fill="none"/>'
-       f'<path d="M190 176 h20" {S}/>')
 
-KETTE = f'<path d="M172 205 Q200 245 228 205" stroke="#e8b923" stroke-width="7" fill="none"/><circle cx="200" cy="236" r="10" fill="#e8b923" {S}/>'
-def muenzen(xs, y=360):
-    return "".join(f'<ellipse cx="{x}" cy="{y + (i % 2) * 8}" rx="12" ry="7" fill="#e8b923" {S}/>' for i, x in enumerate(xs))
-SACK = f'<path d="M265 262 q-30 10 -25 45 q30 15 55 0 q5 -35 -25 -45 z" fill="#c9a24a" {S}/><path d="M255 262 h20" {S}/><text x="262" y="296" font-size="22" font-family="Georgia" font-weight="bold" fill="{INK}">G</text>'
-URKUNDE = f'<path d="M100 250 h40 v35 h-40 z" fill="#f4ecd8" {S}/><circle cx="120" cy="290" r="8" fill="#b3261e" {S}/>'
-FICKEN = (f'<path d="M168 230 l12 10 l-12 10 M222 250 l10 -10 l10 10" stroke="#8c6b4a" stroke-width="5" fill="none"/>'
-          f'<rect x="150" y="270" width="18" height="14" fill="#a08060" {S}/><rect x="225" y="225" width="16" height="16" fill="#a08060" {S}/>')
-VERBAND = f'<path d="M165 128 Q200 110 236 128" stroke="#fff" stroke-width="12" fill="none"/><path d="M165 128 Q200 110 236 128" {S} fill="none"/><path d="M226 150 l8 8 M228 160 l8 -6" stroke="#8a3a7a" stroke-width="4"/>'
-FASS = f'<rect x="232" y="180" width="70" height="90" rx="18" fill="#a0683a" {S}/><path d="M232 205 h70 M232 245 h70" {S}/>'
-STAND = (f'<rect x="270" y="250" width="110" height="60" fill="#b8865b" {S}/><path d="M265 250 l20 -40 h80 l20 40 z" fill="#e05a47" {S}/>'
-         f'<circle cx="300" cy="245" r="14" fill="#f2e3b3" {S}/><circle cx="335" cy="245" r="14" fill="#f2e3b3" {S}/>')
-TRUHE = (f'<rect x="270" y="320" width="90" height="55" fill="#8a5a33" {S}/><path d="M270 320 q45 -40 90 0" fill="#a0683a" {S}/>'
-         + muenzen([285, 305, 325, 345], 318))
-BEUTEL = f'<path d="M290 352 q-20 5 -15 25 q20 8 35 0 q3 -22 -20 -25 z" fill="#c9a24a" {S}/><path d="M285 352 l-8 -10 M295 352 l6 -10" {S}/>'
+def arm(sx, sy, hx, hy, farbe, dicke=20, haut=SKIN):
+    return (f'<path d="M{sx} {sy} Q{(sx+hx)/2 + (8 if hx > 0 else -8)} {(sy+hy)/2} {hx} {hy}" stroke="{INK}" stroke-width="{dicke+7}" fill="none" stroke-linecap="round"/>'
+            f'<path d="M{sx} {sy} Q{(sx+hx)/2 + (8 if hx > 0 else -8)} {(sy+hy)/2} {hx} {hy}" stroke="{farbe}" stroke-width="{dicke}" fill="none" stroke-linecap="round"/>'
+            f'<circle cx="{hx}" cy="{hy}" r="11" fill="{haut}" {st(3)}/>')
 
-def liegend(figur_svg, extras=""):
-    # Figur liegt auf dem Boden: um 90° gedreht, Kopf links
-    return f'<g transform="translate(-20 130) scale(0.8) rotate(-90 200 220)">{figur_svg}</g>' + extras
 
-import re
-def _fix(tag):
-    # doppeltes stroke-width: das erste (Standard) entfernen
-    if tag.group(0).count('stroke-width=') > 1:
-        return tag.group(0).replace('stroke-width="4" ', '', 1)
-    return tag.group(0)
+def figur(reich, farbe, augen_art, mund_art, tot=False, hut=None, haende=((-66, -78), (66, -78)),
+          vorne="", hinten="", verband=False, kette=False):
+    haut = SKIN_TOT if tot else SKIN
+    s = hinten
+    if reich:
+        # Schuhe
+        s += f'<ellipse cx="-20" cy="-6" rx="20" ry="9" fill="#3b2a1e" {st(3)}/><ellipse cx="20" cy="-6" rx="20" ry="9" fill="#3b2a1e" {st(3)}/>'
+        # langer Mantel mit Pelzbesatz
+        s += f'<path d="M-44 -150 Q0 -166 44 -150 L64 -18 Q0 -6 -64 -18 Z" fill="{farbe}" {st(3.5)}/>'
+        s += f'<path d="M4 -160 Q30 -158 44 -150 L64 -18 Q34 -10 10 -9 Z" fill="#000" opacity=".15"/>'
+        s += f'<path d="M-66 -20 Q0 -4 66 -20" stroke="#9a7650" stroke-width="14" fill="none"/><path d="M-66 -20 Q0 -4 66 -20" stroke="{INK}" stroke-width="2" fill="none" stroke-dasharray="1 9"/>'
+        s += f'<path d="M-40 -150 Q0 -120 40 -150" stroke="#9a7650" stroke-width="16" fill="none"/>'
+        s += f'<rect x="-48" y="-92" width="96" height="10" fill="#3b2a1e" {st(2.5)}/><rect x="-8" y="-95" width="16" height="16" rx="3" fill="url(#gold)" {st(2.5)}/>'
+        s += f'<path d="M24 -82 q-8 26 10 30 q18 -4 10 -30 z" fill="#6b3b22" {st(2.5)}/>'
+    else:
+        # Beine mit Löchern, Holzschuhe
+        s += f'<rect x="-30" y="-70" width="22" height="64" fill="#6f6250" {st(3)}/><rect x="8" y="-70" width="22" height="64" fill="#6f6250" {st(3)}/>'
+        s += f'<ellipse cx="-19" cy="-40" rx="5" ry="4" fill="{haut}" {st(1.5)}/><ellipse cx="19" cy="-22" rx="4" ry="5" fill="{haut}" {st(1.5)}/>'
+        s += f'<path d="M-40 -2 q0 -14 22 -12 q8 4 6 14 z M40 -2 q0 -14 -22 -12 q-8 4 -6 14 z" fill="#9a6a3a" {st(3)}/>'
+        # zerlumpter Kittel
+        s += f'<path d="M-40 -150 Q0 -162 40 -150 L50 -62 L34 -54 L22 -66 L8 -54 L-6 -66 L-22 -54 L-34 -66 L-50 -60 Z" fill="{farbe}" {st(3.5)}/>'
+        s += f'<path d="M4 -158 Q26 -156 40 -150 L50 -62 L34 -54 L22 -66 L8 -54 Z" fill="#000" opacity=".15"/>'
+        s += f'<rect x="-30" y="-128" width="20" height="18" fill="#a08a5a" {st(2)} transform="rotate(-8 -20 -119)"/>'
+        s += f'<path d="M-28 -126 v14 M-12 -128 v14" stroke="{INK}" stroke-width="1.5" stroke-dasharray="3 3"/>'
+        s += f'<rect x="14" y="-90" width="18" height="16" fill="#7d8a6a" {st(2)} transform="rotate(10 23 -82)"/>'
+        s += f'<path d="M-46 -92 Q0 -84 46 -92" stroke="#c2a26a" stroke-width="6" fill="none"/><path d="M-6 -88 l-6 16 M-2 -88 l2 18" stroke="#c2a26a" stroke-width="4"/>'
+    s += arm(-40, -140, haende[0][0], haende[0][1], farbe, 22 if reich else 18, haut)
+    s += arm(40, -140, haende[1][0], haende[1][1], farbe, 22 if reich else 18, haut)
+    if kette:
+        s += f'<path d="M-30 -150 Q0 -100 30 -150" stroke="url(#gold)" stroke-width="7" fill="none" stroke-dasharray="7 3"/>'
+        s += f'<circle cx="0" cy="-114" r="11" fill="url(#gold)" {st(2.5)}/><path d="M-4 -114 h8 M0 -118 v8" {st(1.5)}/>'
+    s += kopf(reich, augen_art, mund_art, tot, hut, verband)
+    return s + vorne
 
-def svg(inhalt, titel):
-    inhalt = re.sub(r'<[^>]+>', _fix, inhalt)
-    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="{titel}">{inhalt}</svg>'
 
-ROT, GRUEN, BRAUN, GRAU = "#b3261e", "#2f7d4a", "#8a6a4a", "#8c8577"
-B = {
-  "tot_rat":   ("Ratsherr – bis die Pest kam", hintergrund("stadt") + liegend(figur(ROT, True, TOT, KETTE)) + muenzen([300, 330, 360])),
-  "tot_reich": ("Reich, aber an der Pest gestorben", hintergrund("stadt") + liegend(figur(GRUEN, True, TOT)) + TRUHE),
-  "tot_arm":   ("Arm und an der Pest gestorben", hintergrund("stadt") + liegend(figur(GRAU, False, TOT, FICKEN, hut=False)) + BEUTEL),
-  "ratsherr":  ("Ratsherr in Lübeck", hintergrund("stadt") + figur(ROT, True, GLUECK, KETTE + URKUNDE)),
-  "reich":     ("Reicher Fernhändler", hintergrund("hafen") + figur(GRUEN, True, GLUECK, SACK)),
-  "klein":     ("Kleiner Kaufmann", hintergrund("stadt") + STAND + figur(BRAUN, False, NEUTRAL)),
-  "ruiniert":  ("Ruiniert", hintergrund("hafen") + figur(GRAU, False, TRAURIG, FICKEN + VERBAND + FASS, hut=False)),
+def stehend(fig, x, boden, s=1.0):
+    return f'<g transform="translate({x} {boden}) scale({s})">{fig}</g>'
+
+
+def liegend(fig, x, boden, s=0.8):
+    # gedreht: Kopf links, Füße bei x
+    return f'<g transform="translate({x} {boden - 62*s}) scale({s}) rotate(-90)">{fig}</g>'
+
+
+# ---------------------------------------------------------------- Requisiten
+def muenze(x, y, r=11):
+    return f'<ellipse cx="{x}" cy="{y}" rx="{r}" ry="{r*0.62:.1f}" fill="url(#gold)" {st(2.5)}/><ellipse cx="{x}" cy="{y}" rx="{r*0.5:.1f}" ry="{r*0.3:.1f}" fill="none" stroke="#b9861a" stroke-width="1.5"/>'
+
+
+def muenzen(lst):
+    return "".join(muenze(x, y) for x, y in lst)
+
+
+def geldsack(x, y, s=1.0):
+    return f'''<g transform="translate({x} {y}) scale({s})">
+  <path d="M-30 -48 q-30 18 -26 52 q30 16 56 0 q4 -34 -26 -52 z" fill="#c9a24a" {st(3)}/>
+  <path d="M-14 -50 q-8 -14 -14 -18 q14 0 18 6 q6 -6 18 -6 q-6 4 -14 18 z" fill="#c9a24a" {st(2.5)}/>
+  <path d="M-16 -48 h22" stroke="#7a4a28" stroke-width="5"/>
+  <text x="-2" y="-6" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="26" fill="#7a4a28">G</text>
+  {muenze(-38, 6, 9)}{muenze(26, 8, 9)}
+</g>'''
+
+
+def truhe(x, y):
+    return f'''<g transform="translate({x} {y})">
+  <path d="M-50 -50 q50 -60 100 0" fill="#9a5f30" {st(3)}/>
+  {muenzen([(-32, -54), (-12, -62), (10, -60), (30, -52), (-20, -46), (20, -44), (0, -50)])}
+  <rect x="-50" y="-50" width="100" height="55" fill="#8a5228" {st(3)}/>
+  <path d="M-50 -30 h100 M-30 -50 v55 M30 -50 v55" stroke="#4e2e17" stroke-width="3"/>
+  <rect x="-8" y="-38" width="16" height="16" fill="url(#gold)" {st(2)}/>
+</g>'''
+
+
+def beutel_leer(x, y):
+    return f'''<g transform="translate({x} {y})">
+  <path d="M-20 0 q-6 -26 14 -30 q22 4 16 30 q-16 8 -30 0 z" fill="#a08a5a" {st(3)}/>
+  <path d="M-8 -30 q2 -12 14 -14 M4 -30 q4 -10 14 -8" {st(2.5)} fill="none"/>
+  <path d="M18 -40 q8 -8 14 0 q-6 4 -14 0 z M26 -46 q6 -8 12 -2 q-6 4 -12 2 z" fill="#d8d0b8" {st(1.5)}/>
+</g>'''
+
+
+def ratte(x, y, s=1.0):
+    return f'''<g transform="translate({x} {y}) scale({s})">
+  <path d="M26 -6 q30 4 40 -14 q4 -8 -2 -10" stroke="#8a7f88" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <ellipse cx="0" cy="-12" rx="30" ry="16" fill="#6e6670" {st(3)}/>
+  <path d="M-26 -18 l-20 6 l20 8 z" fill="#6e6670" {st(3)}/>
+  <circle cx="-44" cy="-12" r="3.5" fill="#e88" />
+  <circle cx="-18" cy="-28" r="8" fill="#d79aa0" {st(2.5)}/>
+  <circle cx="-32" cy="-16" r="3" fill="{INK}"/><circle cx="-31" cy="-17" r="1" fill="#fff"/>
+  <path d="M-46 -12 l-10 -4 M-46 -10 l-10 2" stroke="{INK}" stroke-width="1.5"/>
+  <path d="M-10 2 v4 M14 2 v4" {st(3)}/>
+</g>'''
+
+
+def kraehe(x, y, s=1.0):
+    return f'''<g transform="translate({x} {y}) scale({s})">
+  <path d="M-14 0 q4 -18 22 -16 q12 2 12 12 l10 2 l-10 4 q-8 14 -24 10 z" fill="#1d1b22" {st(2)}/>
+  <path d="M-12 0 l-14 6 l12 2" fill="#1d1b22" {st(2)}/>
+  <circle cx="12" cy="-8" r="2.5" fill="#fff"/>
+  <path d="M0 12 v8 M6 12 v8" stroke="#e8b923" stroke-width="2.5"/>
+</g>'''
+
+
+def urkunde(x, y):
+    return f'''<g transform="translate({x} {y}) rotate(-8)">
+  <rect x="-28" y="-40" width="56" height="70" fill="#f4ecd8" {st(3)}/>
+  <path d="M-28 -40 q-10 4 0 10 M28 30 q10 -4 0 -10" {st(3)} fill="#e8dcbe"/>
+  <path d="M-18 -26 h36 M-18 -16 h36 M-18 -6 h28 M-18 4 h32" stroke="#8a7a68" stroke-width="2.5"/>
+  <path d="M-4 22 l-6 22 l10 -6 l10 6 l-6 -22" fill="#b3261e" {st(2)}/>
+  <circle cx="0" cy="20" r="10" fill="#b3261e" {st(2.5)}/>
+</g>'''
+
+
+def fass(x, y, s=1.0, drehung=0):
+    return f'''<g transform="translate({x} {y}) rotate({drehung}) scale({s})">
+  <path d="M-34 -50 q-10 50 0 100 h68 q10 -50 0 -100 z" fill="#a0683a" {st(3)}/>
+  <path d="M-38 -24 h76 M-38 24 h76" stroke="#4e4a46" stroke-width="7"/>
+  <path d="M-14 -50 q-4 50 0 100 M14 -50 q4 50 0 100" stroke="#7a4a28" stroke-width="2.5" fill="none"/>
+  <ellipse cx="0" cy="-50" rx="34" ry="8" fill="#b97a48" {st(3)}/>
+</g>'''
+
+
+def ballen(x, y):
+    return f'''<g transform="translate({x} {y})">
+  <rect x="-34" y="-46" width="68" height="46" rx="8" fill="#d8c08a" {st(3)}/>
+  <path d="M-34 -23 h68 M0 -46 v46" stroke="#8a6a3a" stroke-width="4"/>
+  <rect x="-24" y="-82" width="52" height="36" rx="7" fill="#c7a9d8" {st(3)}/>
+  <path d="M-24 -64 h52 M2 -82 v36" stroke="#6b4e7a" stroke-width="3.5"/>
+</g>'''
+
+
+def marktstand(x, y):
+    streifen = "".join(f'<path d="M{-70 + i*20} -128 h20 l6 28 h-20 z" fill="{"#e05a47" if i % 2 == 0 else "#f4ecd8"}"/>' for i in range(7))
+    return f'''<g transform="translate({x} {y})">
+  <path d="M-62 -100 V0 M62 -100 V0" {st(5)}/>
+  <rect x="-70" y="-50" width="140" height="50" fill="#9a6a3a" {st(3)}/>
+  <path d="M-70 -30 h140" stroke="#6b4426" stroke-width="2.5"/>
+  {streifen}
+  <path d="M-70 -128 h140 l6 28 h-140 z" fill="none" {st(3)}/>
+  <circle cx="-38" cy="-62" r="12" fill="#f2e3b3" {st(2.5)}/><circle cx="-14" cy="-60" r="12" fill="#f2e3b3" {st(2.5)}/>
+  <rect x="10" y="-76" width="22" height="26" fill="#d9d2c1" {st(2.5)}/><rect x="36" y="-70" width="22" height="20" fill="#c7a9d8" {st(2.5)}/>
+</g>'''
+
+
+def regenwolke(x, y):
+    tropfen = "".join(f'<path d="M{x+dx} {y+22+dy} q-4 8 0 12 q4 -4 0 -12 z" fill="#5fb3e8"/>' for dx, dy in [(-30, 4), (-12, 16), (6, 6), (24, 18), (40, 4)])
+    return (f'<g fill="#7d7a86" {st(3)}><path d="M{x-46} {y+14} q-10 -26 16 -28 q6 -24 32 -16 q16 -18 38 -2 q26 -4 24 22 q14 12 -4 24 h-100 q-14 -2 -6 0 z"/></g>'
+            + tropfen)
+
+
+def schatten(x, y, rx=70):
+    return f'<ellipse cx="{x}" cy="{y}" rx="{rx}" ry="10" fill="#000" opacity=".2"/>'
+
+
+# ---------------------------------------------------------------- Szenen
+ROT, GRUEN, BLAU, BRAUN, GRAU = "#7a1a2a", "#2f7d4a", "#2c5d8f", "#8a6a4a", "#8c8577"
+
+
+def szene_tot_rat():
+    return (stadt(True) + kraehe(110, 136, 1.1) + kraehe(300, 108)
+            + schatten(160, 384, 120)
+            + liegend(figur(True, ROT, "tot", "tot", tot=True, hut=None, kette=True), 262, 380)
+            + '<g transform="translate(52 392) rotate(-15)"><path d="M-30 -10 q30 -40 60 0 q-30 10 -60 0 z" fill="#24212b" stroke="#2b2118" stroke-width="3"/></g>'
+            + urkunde(345, 300) + muenzen([(300, 384), (262, 392)]) + ratte(40, 300, 0.7))
+
+
+def szene_tot_reich():
+    return (stadt(True) + kraehe(200, 120) + schatten(160, 384, 120)
+            + liegend(figur(True, GRUEN, "tot", "tot", tot=True, hut="barett"), 262, 380)
+            + truhe(338, 380) + muenzen([(270, 388), (250, 380)]) + ratte(140, 300, 0.75))
+
+
+def szene_tot_arm():
+    return (stadt(True) + kraehe(120, 126) + kraehe(310, 100, 0.9) + schatten(160, 384, 120)
+            + liegend(figur(False, GRAU, "tot", "tot", tot=True), 262, 380)
+            + beutel_leer(330, 388) + ratte(340, 318, 0.75))
+
+
+def szene_ratsherr():
+    return (rathaus() + schatten(200, 372, 80)
+            + stehend(figur(True, ROT, "froh", "lachen", hut="chaperon", kette=True,
+                            haende=((-70, -100), (70, -84))), 200, 372)
+            + urkunde(118, 286) + muenzen([(300, 380)]))
+
+
+def szene_reich():
+    return (hafen(False) + ballen(320, 372) + schatten(190, 374, 80)
+            + stehend(figur(True, BLAU, "froh", "lachen", hut="barett", haende=((-70, -84), (70, -60))), 190, 374)
+            + geldsack(276, 360, 0.9) + muenzen([(120, 386), (100, 378)]))
+
+
+def szene_klein():
+    return (stadt(False) + marktstand(300, 372) + fass(70, 360, 0.6) + schatten(170, 374, 70)
+            + stehend(figur(False, BRAUN, "normal", "muede", hut="muetze"), 170, 374)
+            + muenzen([(206, 300)]))
+
+
+def szene_ruiniert():
+    return (hafen(True) + schatten(200, 374, 70)
+            + stehend(figur(False, GRAU, "traurig", "traurig", verband=True,
+                            haende=((-56, -150), (30, -230)),
+                            hinten=fass(-40, -210, 0.85, -20)), 200, 374)
+            + regenwolke(205, 50))
+
+
+SZENEN = {
+    "tot_rat": ("Ratsherr – bis die Pest kam", szene_tot_rat),
+    "tot_reich": ("Reich, aber an der Pest gestorben", szene_tot_reich),
+    "tot_arm": ("Arm und an der Pest gestorben", szene_tot_arm),
+    "ratsherr": ("Ratsherr in Lübeck", szene_ratsherr),
+    "reich": ("Reicher Fernhändler", szene_reich),
+    "klein": ("Kleiner Kaufmann", szene_klein),
+    "ruiniert": ("Ruiniert", szene_ruiniert),
 }
-os.makedirs(OUT, exist_ok=True)
-for k, (t, inhalt) in B.items():
-    open(os.path.join(OUT, k + ".svg"), "w", encoding="utf-8").write(svg(inhalt, t))
-print("ok", len(B))
+
+if __name__ == "__main__":
+    for name, (titel, fn) in SZENEN.items():
+        inhalt = fn()
+        svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="{titel}">'
+               f'{defs()}<clipPath id="r"><rect width="400" height="400" rx="0"/></clipPath><g clip-path="url(#r)">{inhalt}</g></svg>')
+        with open(os.path.join(OUT, name + ".svg"), "w", encoding="utf-8") as f:
+            f.write(svg)
+    print("ok", len(SZENEN))
