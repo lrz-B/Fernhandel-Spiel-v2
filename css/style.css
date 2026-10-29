@@ -101,3 +101,4 @@ input {
 .timer { font-size: 1.6em; font-weight: 700; color: var(--akzent); }
 .timer.um { color: var(--leise); }
 .werte-start { font-size: .75em; color: var(--leise); }
+.schicksalsbild { width: 100%; max-width: 360px; border-radius: 12px; border: 1px solid var(--rand); display: block; margin: 8px auto 4px; }

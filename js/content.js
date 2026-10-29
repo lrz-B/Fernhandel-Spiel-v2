@@ -152,20 +152,21 @@ export const RUNDEN = [
 
 // -----------------------------------------------------------------------------
 // SCHICKSALE. Von oben nach unten: die ERSTE passende Regel gilt.
+//   bild: Bild, das der Spieler am Ende sieht (Ordner img/)
 // -----------------------------------------------------------------------------
 export const SCHICKSALE = [
-  { id: "tot_rat", wenn: (s) => s.tot && s.merkmale.ratsherr, emoji: "💀👑",
+  { id: "tot_rat", bild: "img/tot_rat.svg", wenn: (s) => s.tot && s.merkmale.ratsherr, emoji: "💀👑",
     titel: "Ratsherr – bis die Pest kam", text: "Du hattest Macht und Geld. Die Pest hat nicht danach gefragt." },
-  { id: "tot_reich", wenn: (s) => s.tot && s.werte.geld >= 200, emoji: "💀💰",
+  { id: "tot_reich", bild: "img/tot_reich.svg", wenn: (s) => s.tot && s.werte.geld >= 200, emoji: "💀💰",
     titel: "Reich, aber an der Pest gestorben", text: "Der Handel hat dich reich gemacht – und dir die Pest gebracht." },
-  { id: "tot_arm", wenn: (s) => s.tot, emoji: "💀",
+  { id: "tot_arm", bild: "img/tot_arm.svg", wenn: (s) => s.tot, emoji: "💀",
     titel: "Arm und an der Pest gestorben", text: "Vom Handel hattest du wenig. Seinen Preis hast du trotzdem gezahlt." },
-  { id: "ratsherr", wenn: (s) => s.merkmale.ratsherr, emoji: "👑",
+  { id: "ratsherr", bild: "img/ratsherr.svg", wenn: (s) => s.merkmale.ratsherr, emoji: "👑",
     titel: "Ratsherr in Lübeck", text: "Der Fernhandel hat dich reich und mächtig gemacht." },
-  { id: "reich", wenn: (s) => s.werte.geld >= 250, emoji: "💰",
+  { id: "reich", bild: "img/reich.svg", wenn: (s) => s.werte.geld >= 250, emoji: "💰",
     titel: "Reicher Fernhändler", text: "Du gehörst zu den besitzenden Bürgern der Stadt." },
-  { id: "klein", wenn: (s) => s.werte.geld >= 100, emoji: "⚓",
+  { id: "klein", bild: "img/klein.svg", wenn: (s) => s.werte.geld >= 100, emoji: "⚓",
     titel: "Kleiner Kaufmann", text: "Kein Vermögen, aber du kommst über die Runden." },
-  { id: "ruiniert", wenn: () => true, emoji: "🧺",
+  { id: "ruiniert", bild: "img/ruiniert.svg", wenn: () => true, emoji: "🧺",
     titel: "Ruiniert", text: "Der Handel war ein Glücksspiel. Jetzt schleppst du als Tagelöhner Fässer am Hafen." },
 ];

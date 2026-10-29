@@ -9,7 +9,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         super().end_headers()
 
-PORT = 8766
+PORT = int(os.environ.get("PORT", "8766"))
 print(f"Demo: http://localhost:{PORT}/demo.html   (Beenden: Strg+C)")
 if os.environ.get("KEIN_BROWSER") != "1":
     webbrowser.open(f"http://localhost:{PORT}/demo.html")

@@ -65,7 +65,7 @@ function render() {
   } else if (status.phase === "ende") {
     const f = schicksal(ich);
     inhalt = `<div class="karte mitte schicksal"><p class="klein">Dein Schicksal</p>
-      <div class="gross">${f.emoji}</div><h2>${esc(f.titel)}</h2><p>${esc(f.text)}</p>
+      ${f.bild ? `<img class="schicksalsbild" src="${esc(f.bild)}" alt="">` : `<div class="gross">${f.emoji}</div>`}<h2>${esc(f.titel)}</h2><p>${esc(f.text)}</p>
       <p class="klein">Endstand: ${WERTE.map((w) => `${ich.werte[w.id]} ${esc(w.name)}`).join(" · ")}</p></div>${verlauf()}`;
   } else if (ich.tot) {
     inhalt = `<div class="karte mitte"><div class="gross">💀</div><h2>Du bist tot.</h2>
