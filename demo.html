@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spiel-Demo</title>
+  <style>
+    body { margin: 0; background: #2b2118; color: #f6f0e3; font: 14px system-ui, sans-serif; }
+    header { padding: 8px 14px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+    header b { font-size: 16px; }
+    header span { opacity: .75; }
+    .buehne { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 0 12px 12px; }
+    .beamer { width: 100%; height: calc(100vh - 60px); border: 0; border-radius: 8px; background: #f6f0e3; }
+    .handys { display: grid; grid-template-columns: repeat(2, 300px); gap: 10px; align-content: start;
+      height: calc(100vh - 60px); overflow: auto; }
+    .handys figure { margin: 0; }
+    .handys figcaption { font-size: 12px; opacity: .75; margin-bottom: 3px; }
+    .handys iframe { width: 300px; height: 420px; border: 0; border-radius: 14px; background: #f6f0e3; }
+    @media (max-width: 1100px) { .buehne { grid-template-columns: 1fr; } .beamer { height: 70vh; } .handys { height: auto; } }
+  </style>
+</head>
+<body>
+  <header>
+    <b>Demo</b>
+    <span>Der Beamer (weiter mit dem Knopf unten rechts), daneben vier Handys zum Mitklicken.
+      Dazu spielen <span id="bots">20</span> Bots im Hintergrund.</span>
+    <a id="eigener" target="_blank" style="color:#f3c27a;font-weight:600">Eigenen Spieler-Tab öffnen</a>
+  </header>
+  <script>try { localStorage.removeItem("ks:host"); localStorage.removeItem("klassenspiel:db"); } catch {}</script>
+  <div class="buehne">
+    <iframe class="beamer" id="beamer" src="host.html"></iframe>
+    <div class="handys" id="handys"></div>
+  </div>
+  <script type="module" src="js/demo.js"></script>
+</body>
+</html>
