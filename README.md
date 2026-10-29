@@ -84,3 +84,16 @@ Alles in `js/content.js`. Kurz:
 - **SCHICKSALE**: Regeln von oben nach unten, die erste passende gilt.
 
 Nach jeder Änderung den Testmodus einmal komplett durchspielen.
+
+## Checkliste vor dem Referat (05.11.)
+
+- [ ] `js/config.js` enthält die Firebase-Daten (oben steht dann nicht mehr „Testmodus“)
+- [ ] Spiel ist online: `https://<benutzername>.github.io/<repo>/host.html` öffnet sich
+- [ ] Probe im Klassenraum mit 3–4 Handys: QR-Code scannen, beitreten, eine Runde spielen
+- [ ] Wenn das Schul-WLAN blockt: Handys mit mobilen Daten testen
+- [ ] Am Referatstag `host.html` vor Beginn öffnen, Folie 2 zeigen, QR-Code bleibt stehen
+
+Schutz eingebaut: Kommt keine Verbindung zustande, zeigt das Handy nach 15 Sekunden
+„Keine Verbindung“ statt endlos zu laden. Reißt sie ab, erscheint oben ein roter Hinweis,
+die Seite verbindet sich von selbst neu. Der Timer läuft nach der Serveruhr, also auf allen
+Geräten gleich. Der QR-Code kommt aus `js/vendor/` und braucht keinen fremden Server.

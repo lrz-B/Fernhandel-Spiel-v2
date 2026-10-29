@@ -1,7 +1,7 @@
 // Spielleitung (Beamer). Steuerung: Knopf, Pfeil rechts, Leertaste, Bild runter (Clicker).
 // Ablauf: Lobby -> Runde 1 -> Runde 2 -> Runde 3 -> Auflösung (Schicksale).
 // Ergebnisse werden erst am Ende ausgewertet.
-import { verbinden, testmodus } from "./backend.js";
+import { verbinden, testmodus, fehlerAnzeigen, verbindungsHinweis } from "./backend.js";
 import { SPIEL, CHARAKTERE, RUNDEN, SCHICKSALE } from "./content.js";
 import { schicksal, normal, charakter, timerSekunden } from "./engine.js";
 
@@ -38,7 +38,7 @@ function balken(eintraege, gesamt) {
 
 function restSekunden() {
   if (!status?.endetUm) return null;
-  return Math.max(0, Math.ceil((status.endetUm - Date.now()) / 1000));
+  return Math.max(0, Math.ceil((status.endetUm - db.jetzt()) / 1000));
 }
 
 function render() {
@@ -97,7 +97,7 @@ setInterval(() => {
 }, 250);
 
 function offen(i) {
-  return { runde: i, phase: "offen", endetUm: Date.now() + timerSekunden(RUNDEN[i], SPIEL.timerSekunden) * 1000 };
+  return { runde: i, phase: "offen", endetUm: db.jetzt() + timerSekunden(RUNDEN[i], SPIEL.timerSekunden) * 1000 };
 }
 
 function naechsteAktion() {
@@ -157,7 +157,13 @@ async function neuesSpiel() {
 }
 
 async function start() {
-  db = await verbinden();
+  try {
+    db = await verbinden();
+  } catch (e) {
+    console.error(e);
+    return fehlerAnzeigen(app);
+  }
+  verbindungsHinweis(db);
   code = localStorage.getItem("ks:host");
   if (!code || !(await db.lesen(`spiele/${code}/status`))) return neuesSpiel();
   beobachten();

@@ -2,20 +2,37 @@
 // Ohne: Testmodus über localStorage (nur Tabs auf demselben Gerät).
 //
 // Datenmodell:
-//   spiele/<code>/status            { runde: -1..n, phase: "lobby"|"offen"|"ergebnis"|"ende" }
+//   spiele/<code>/status            { runde: -1..n, phase: "lobby"|"offen"|"ende", endetUm }
 //   spiele/<code>/spieler/<id>      Spielerzustand (siehe engine.neuerSpieler)
 import { FIREBASE_CONFIG } from "./config.js";
 
 export const testmodus = !FIREBASE_CONFIG;
 
+function mitZeitlimit(promise, ms) {
+  return Promise.race([promise, new Promise((_, nein) => setTimeout(() => nein(new Error("Zeitüberschreitung")), ms))]);
+}
+
 async function firebaseBackend() {
   const v = "10.12.2";
-  const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${v}/firebase-app.js`);
-  const db = await import(`https://www.gstatic.com/firebasejs/${v}/firebase-database.js`);
+  const [{ initializeApp }, db] = await mitZeitlimit(Promise.all([
+    import(`https://www.gstatic.com/firebasejs/${v}/firebase-app.js`),
+    import(`https://www.gstatic.com/firebasejs/${v}/firebase-database.js`),
+  ]), 15000);
   const app = initializeApp(FIREBASE_CONFIG);
   const d = db.getDatabase(app);
   const r = (p) => db.ref(d, p);
+  // Unterschied zwischen Geräteuhr und Serveruhr, damit der Timer überall gleich läuft
+  let versatz = 0;
+  db.onValue(r(".info/serverTimeOffset"), (snap) => { versatz = snap.val() || 0; });
+  // Erste Verbindung abwarten, sonst klare Fehlermeldung
+  await mitZeitlimit(new Promise((ja) => {
+    const stop = db.onValue(r(".info/connected"), (snap) => { if (snap.val()) { stop(); ja(); } });
+  }), 15000);
   return {
+    jetzt: () => Date.now() + versatz,
+    verbindung(cb) {
+      return db.onValue(r(".info/connected"), (snap) => cb(!!snap.val()));
+    },
     beobachten(pfad, cb) {
       return db.onValue(r(pfad), (snap) => cb(snap.val()));
     },
@@ -47,6 +64,8 @@ function lokalesBackend() {
   window.addEventListener("storage", (e) => { if (e.key === PREFIX + "db") benachrichtigen(); });
 
   return {
+    jetzt: () => Date.now(),
+    verbindung(cb) { cb(true); return () => {}; },
     beobachten(pfad, cb) {
       const h = { pfad, cb };
       hoerer.add(h);
@@ -72,4 +91,25 @@ function lokalesBackend() {
 
 export async function verbinden() {
   return testmodus ? lokalesBackend() : firebaseBackend();
+}
+
+// Gemeinsame Anzeige, wenn keine Verbindung zustande kommt oder sie abreißt.
+export function fehlerAnzeigen(app) {
+  app.innerHTML = `<div class="karte mitte"><div class="gross">📡</div>
+    <h2>Keine Verbindung zum Spiel</h2>
+    <p>Das WLAN lässt die Verbindung vielleicht nicht durch. Versuch es mit mobilen Daten oder lade die Seite neu.</p>
+    <button onclick="location.reload()">Neu laden</button></div>`;
+}
+
+export function verbindungsHinweis(db) {
+  let el = null;
+  db.verbindung((ok) => {
+    if (ok) { el?.remove(); el = null; return; }
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "offline";
+      el.textContent = "Verbindung unterbrochen … wird wiederhergestellt";
+      document.body.appendChild(el);
+    }
+  });
 }

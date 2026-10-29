@@ -1,5 +1,5 @@
 // Spielerseite (Handy).
-import { verbinden, testmodus } from "./backend.js";
+import { verbinden, testmodus, fehlerAnzeigen, verbindungsHinweis } from "./backend.js";
 import { SPIEL, CHARAKTERE, RUNDEN, WERTE } from "./content.js";
 import { neuerSpieler, optionErlaubt, sperrgrund, aufloesen, schicksal, normal, charakter, kostenText } from "./engine.js";
 
@@ -92,7 +92,7 @@ function renderFrage(runde) {
       <h2>${esc(runde.frage)}</h2><p class="hinweis">Schau nach vorne …</p></div>`;
   }
   const gewaehlt = ich.wahl[runde.id];
-  const rest = status.endetUm ? Math.max(0, Math.ceil((status.endetUm - Date.now()) / 1000)) : null;
+  const rest = status.endetUm ? Math.max(0, Math.ceil((status.endetUm - db.jetzt()) / 1000)) : null;
   const knoepfe = runde.optionen.map((o) => {
     const ok = runde.typ === "quiz" || optionErlaubt(ich, o);
     return `<button class="option ${gewaehlt === o.id ? "aktiv" : ""}" data-opt="${o.id}" ${ok ? "" : "disabled"}>
@@ -109,7 +109,7 @@ function renderFrage(runde) {
 setInterval(() => {
   const el = document.getElementById("timer");
   if (!el || status?.phase !== "offen" || !status.endetUm) return;
-  const rest = Math.max(0, Math.ceil((status.endetUm - Date.now()) / 1000));
+  const rest = Math.max(0, Math.ceil((status.endetUm - db.jetzt()) / 1000));
   el.textContent = rest === 0 ? "Zeit um" : `⏳ ${rest} s`;
 }, 250);
 
@@ -184,7 +184,13 @@ async function pruefeAufloesung() {
 async function start() {
   if (testmodus) document.body.insertAdjacentHTML("beforeend", `<div class="testmodus">Testmodus</div>`);
   if (!code) return render();
-  db = await verbinden();
+  try {
+    db = await verbinden();
+  } catch (e) {
+    console.error(e);
+    return fehlerAnzeigen(app);
+  }
+  verbindungsHinweis(db);
   let letzterStatus, letztesIch;
   db.beobachten(`spiele/${code}/status`, async (s) => {
     const j = JSON.stringify(s);
