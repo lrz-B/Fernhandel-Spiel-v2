@@ -25,7 +25,7 @@ Oben gibt es einen Link für einen eigenen Spieler-Tab (im selben Browser!).
 | Datei | Zweck |
 |---|---|
 | `index.html` | Seite für die Spieler (Handy) |
-| `host.html` | Spielleitung für den Beamer: QR-Code, Spielerzahl, Timer, Auflösung, Schicksale. Weiter mit Knopf, **Pfeil rechts**, Leertaste, Enter oder Clicker |
+| `host.html` | Spielleitung für den Beamer: QR-Code, Spielerzahl, Abstimmung, Schicksale, Rangliste. Weiter mit Knopf, **Pfeil rechts**, Leertaste, Enter oder Clicker |
 | `js/content.js` | **Alle Inhalte**: Werte, Charaktere, Runden, Quiz, Schicksale |
 | `demo.html`, `js/demo.js` | nur Demo mit Bots, für das echte Spiel unnötig |
 | `js/config.js` | Firebase-Zugang (leer = Testmodus) |
