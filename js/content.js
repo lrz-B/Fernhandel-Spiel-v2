@@ -2,7 +2,8 @@
 //  ALLE INHALTE DES SPIELS STEHEN IN DIESER DATEI.
 // =============================================================================
 // Ablauf: Beitreten (nur Name) -> 3 Entscheidungen -> Auflösung am Ende.
-//   nach Folie 6:  Runde 1 – Welche Ware?            (Folie 6, SB S. 70)
+//   nach Folie 6:  Runde 1 – Welche Ware?  Ohne Herkunftsorte: Wer bei Folie 6 aufgepasst hat,
+//                  weiß, wohin die Ware in Runde 2 NICHT gehört.
 //   nach Folie 9:  Runde 2 – Zu welchem Kontor?      (Folie 8, SB S. 70)
 //   nach Folie 13: Runde 3 – Was tust du mit dem Gewinn? (Folie 9–11)
 //   danach automatisch: die Pest 1350 (Folie 12–13), dann Schicksale
@@ -79,10 +80,10 @@ export const RUNDEN = [
     frage: "Du kaufst mit deinen 100 Gulden Ware ein. Womit handelst du?",
     standard: "salz",
     optionen: [
-      { id: "pelze", text: "Pelze aus Nowgorod", ausgang: [{ p: 1, text: "Du kaufst Pelze in Nowgorod.", tag: "Pelze" }] },
-      { id: "tuche", text: "Tuche aus Brügge", ausgang: [{ p: 1, text: "Du kaufst Tuche in Brügge.", tag: "Tuche" }] },
-      { id: "stockfisch", text: "Stockfisch aus Bergen", ausgang: [{ p: 1, text: "Du kaufst Stockfisch in Bergen.", tag: "Stockfisch" }] },
-      { id: "salz", text: "Salz aus Lüneburg", ausgang: [{ p: 1, text: "Du kaufst Salz in Lüneburg.", tag: "Salz" }] },
+      { id: "pelze", text: "Pelze", ausgang: [{ p: 1, text: "Du kaufst Pelze in Nowgorod.", tag: "Pelze" }] },
+      { id: "tuche", text: "Tuche", ausgang: [{ p: 1, text: "Du kaufst Tuche in Brügge.", tag: "Tuche" }] },
+      { id: "stockfisch", text: "Stockfisch", ausgang: [{ p: 1, text: "Du kaufst Stockfisch in Bergen.", tag: "Stockfisch" }] },
+      { id: "salz", text: "Salz", ausgang: [{ p: 1, text: "Du kaufst Salz in Lüneburg.", tag: "Salz" }] },
     ],
   },
   {
@@ -155,18 +156,18 @@ export const RUNDEN = [
 //   bild: Bild, das der Spieler am Ende sieht (Ordner img/)
 // -----------------------------------------------------------------------------
 export const SCHICKSALE = [
-  { id: "tot_rat", bild: "img/tot_rat.svg", wenn: (s) => s.tot && s.merkmale.ratsherr, emoji: "💀👑",
+  { id: "tot_rat", bild: "img/tot_rat.png", wenn: (s) => s.tot && s.merkmale.ratsherr, emoji: "💀👑",
     titel: "Ratsherr – bis die Pest kam", text: "Du hattest Macht und Geld. Die Pest hat nicht danach gefragt." },
-  { id: "tot_reich", bild: "img/tot_reich.svg", wenn: (s) => s.tot && s.werte.geld >= 200, emoji: "💀💰",
+  { id: "tot_reich", bild: "img/tot_reich.png", wenn: (s) => s.tot && s.werte.geld >= 200, emoji: "💀💰",
     titel: "Reich, aber an der Pest gestorben", text: "Der Handel hat dich reich gemacht – und dir die Pest gebracht." },
-  { id: "tot_arm", bild: "img/tot_arm.svg", wenn: (s) => s.tot, emoji: "💀",
+  { id: "tot_arm", bild: "img/tot_arm.png", wenn: (s) => s.tot, emoji: "💀",
     titel: "Arm und an der Pest gestorben", text: "Vom Handel hattest du wenig. Seinen Preis hast du trotzdem gezahlt." },
-  { id: "ratsherr", bild: "img/ratsherr.svg", wenn: (s) => s.merkmale.ratsherr, emoji: "👑",
+  { id: "ratsherr", bild: "img/ratsherr.png", wenn: (s) => s.merkmale.ratsherr, emoji: "👑",
     titel: "Ratsherr in Lübeck", text: "Der Fernhandel hat dich reich und mächtig gemacht." },
-  { id: "reich", bild: "img/reich.svg", wenn: (s) => s.werte.geld >= 250, emoji: "💰",
+  { id: "reich", bild: "img/reich.png", wenn: (s) => s.werte.geld >= 250, emoji: "💰",
     titel: "Reicher Fernhändler", text: "Du gehörst zu den besitzenden Bürgern der Stadt." },
-  { id: "klein", bild: "img/klein.svg", wenn: (s) => s.werte.geld >= 100, emoji: "⚓",
+  { id: "klein", bild: "img/klein.png", wenn: (s) => s.werte.geld >= 100, emoji: "⚓",
     titel: "Kleiner Kaufmann", text: "Kein Vermögen, aber du kommst über die Runden." },
-  { id: "ruiniert", bild: "img/ruiniert.svg", wenn: () => true, emoji: "🧺",
+  { id: "ruiniert", bild: "img/ruiniert.png", wenn: () => true, emoji: "🧺",
     titel: "Ruiniert", text: "Der Handel war ein Glücksspiel. Jetzt schleppst du als Tagelöhner Fässer am Hafen." },
 ];

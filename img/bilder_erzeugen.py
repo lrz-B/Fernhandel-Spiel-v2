@@ -1,5 +1,7 @@
-# Erzeugt die 7 Schicksalsbilder als Comic-SVGs (400 x 400).
-# Aufruf im Spielordner:  python img/bilder_erzeugen.py
+# Erzeugt die 7 Schicksalsbilder.
+#   python img/bilder_erzeugen.py        -> PNGs nur mit Figuren, transparent (fürs Spiel)
+#   python img/bilder_erzeugen.py szene  -> SVGs mit Hintergrund (Vorschau)
+# Für die PNGs wird Microsoft Edge (headless) und Pillow benutzt.
 import os, re, random
 
 OUT = os.path.dirname(os.path.abspath(__file__))
@@ -419,7 +421,69 @@ SZENEN = {
     "ruiniert": ("Ruiniert", szene_ruiniert),
 }
 
-if __name__ == "__main__":
+# ---------------------------------------------------------------- nur Figuren (für PNG ohne Hintergrund)
+HUT_GEFALLEN = '<g transform="translate(52 392) rotate(-15)"><path d="M-30 -10 q30 -40 60 0 q-30 10 -60 0 z" fill="#24212b" stroke="#2b2118" stroke-width="3"/></g>'
+
+FIGUREN = {
+    "tot_rat": lambda: (schatten(160, 384, 120)
+                        + liegend(figur(True, ROT, "tot", "tot", tot=True, kette=True), 262, 380)
+                        + urkunde(345, 330) + muenzen([(300, 384), (272, 392)])),
+    "tot_reich": lambda: (schatten(160, 384, 120)
+                          + liegend(figur(True, GRUEN, "tot", "tot", tot=True, hut="barett"), 262, 380)
+                          + truhe(338, 380) + muenzen([(270, 388)])),
+    "tot_arm": lambda: (schatten(160, 384, 120)
+                        + liegend(figur(False, GRAU, "tot", "tot", tot=True), 262, 380) + beutel_leer(320, 388)),
+    "ratsherr": lambda: (schatten(200, 372, 80)
+                         + stehend(figur(True, ROT, "froh", "lachen", hut="chaperon", kette=True,
+                                         haende=((-70, -100), (70, -84))), 200, 372) + urkunde(118, 286)),
+    "reich": lambda: (schatten(190, 374, 80)
+                      + stehend(figur(True, BLAU, "froh", "lachen", hut="barett", haende=((-70, -84), (70, -60))), 190, 374)
+                      + geldsack(276, 360, 0.9)),
+    "klein": lambda: (schatten(190, 374, 80) + fass(262, 344, 0.6)
+                      + stehend(figur(False, BRAUN, "normal", "muede", hut="muetze"), 190, 374) + muenze(262, 312, 9)),
+    "ruiniert": lambda: (schatten(200, 374, 70)
+                         + stehend(figur(False, GRAU, "traurig", "traurig", verband=True, haende=((-56, -150), (30, -230)),
+                                         hinten=fass(-40, -210, 0.85, -20)), 200, 374) + regenwolke(205, 50)),
+}
+
+
+def figuren_svg(name, viewbox="0 0 400 400", breite=None, hoehe=None):
+    groesse = f' width="{breite}" height="{hoehe}"' if breite else ""
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{viewbox}"{groesse}>'
+            f'{defs()}{FIGUREN[name]()}</svg>')
+
+
+# Ausschnitt je Figur (x, y, Breite, Höhe), im Browser per getBBox gemessen
+BOX = {"tot_rat": [15, 269, 369, 130], "tot_reich": [30, 269, 358, 126], "tot_arm": [40, 269, 318, 125],
+       "ratsherr": [80, 120, 201, 262], "reich": [109, 84, 199, 300], "klein": [110, 130, 175, 254],
+       "ruiniert": [112, 10, 163, 374]}
+
+
+def pngs():
+    import subprocess, tempfile
+    from PIL import Image
+    edge = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+    f, pad = 3, 10
+    with tempfile.TemporaryDirectory() as tmp:
+        for n, (x, y, w, h) in BOX.items():
+            x, y, w, h = x - pad, y - pad, w + 2 * pad, h + 2 * pad
+            W, H = w * f, h * f
+            open(os.path.join(tmp, n + ".svg"), "w", encoding="utf-8").write(figuren_svg(n, f"{x} {y} {w} {h}", W, H))
+            html = os.path.join(tmp, n + ".html")
+            open(html, "w", encoding="utf-8").write(
+                f'<!doctype html><body style="margin:0;background:transparent;overflow:hidden"><img src="{n}.svg" width="{W}" height="{H}" style="display:block">')
+            out = os.path.join(OUT, n + ".png")
+            subprocess.run([edge, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--default-background-color=00000000",
+                            f"--window-size={W},{H}", f"--screenshot={out}", "file:///" + html.replace("\\", "/")],
+                           capture_output=True, timeout=60)
+            im = Image.open(out).convert("RGBA")
+            im.crop(im.getchannel("A").getbbox()).save(out, optimize=True)
+            print(n + ".png")
+
+
+if __name__ == "__main__" and len(__import__("sys").argv) < 2:
+    pngs()
+elif __name__ == "__main__":
     for name, (titel, fn) in SZENEN.items():
         inhalt = fn()
         svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="{titel}">'
