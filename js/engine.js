@@ -2,6 +2,9 @@
 // Inhalte kommen ausschließlich aus content.js.
 import { CHARAKTERE, RUNDEN, SCHICKSALE, WERTE } from "./content.js";
 
+// Tiefe Kopie, läuft auch auf älteren Handys (structuredClone erst ab iOS 15.4)
+export const kopie = (x) => JSON.parse(JSON.stringify(x));
+
 export const charakter = (id) => CHARAKTERE.find((c) => c.id === id);
 
 export function neuerSpieler(name, charakterId) {
@@ -23,12 +26,12 @@ export function neuerSpieler(name, charakterId) {
 // Firebase speichert leere Objekte nicht; hier wieder auffüllen.
 export function normal(s) {
   if (!s) return s;
-  s.werte ??= {};
-  for (const w of WERTE) s.werte[w.id] ??= 0;
-  s.merkmale ??= {};
-  s.wahl ??= {};
-  s.ergebnis ??= {};
-  for (const e of Object.values(s.ergebnis)) e.aenderung ??= {};
+  if (!s.werte) s.werte = {};
+  for (const w of WERTE) if (s.werte[w.id] == null) s.werte[w.id] = 0;
+  if (!s.merkmale) s.merkmale = {};
+  if (!s.wahl) s.wahl = {};
+  if (!s.ergebnis) s.ergebnis = {};
+  for (const e of Object.values(s.ergebnis)) if (!e.aenderung) e.aenderung = {};
   return s;
 }
 
@@ -76,7 +79,7 @@ function anwenden(s, effekt, aenderung) {
 
 // Wendet die Wahl eines Spielers für eine Runde an. Gibt den neuen Zustand zurück.
 export function aufloesen(spieler, runde) {
-  const s = normal(structuredClone(spieler));
+  const s = normal(kopie(spieler));
   if (s.ergebnis[runde.id] || s.tot) return s;
   const aenderung = {};
 

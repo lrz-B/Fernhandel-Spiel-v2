@@ -76,9 +76,10 @@ function lokalesBackend() {
       const baum = alles();
       const teile = pfad.split("/").filter(Boolean);
       let o = baum;
-      for (const k of teile.slice(0, -1)) o = o[k] ??= {};
-      if (wert === null) delete o[teile.at(-1)];
-      else o[teile.at(-1)] = JSON.parse(JSON.stringify(wert));
+      for (const k of teile.slice(0, -1)) { if (!o[k]) o[k] = {}; o = o[k]; }
+      const letzter = teile[teile.length - 1];
+      if (wert === null) delete o[letzter];
+      else o[letzter] = JSON.parse(JSON.stringify(wert));
       localStorage.setItem(PREFIX + "db", JSON.stringify(baum));
       kanal?.postMessage("x");
       benachrichtigen();

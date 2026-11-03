@@ -3,7 +3,7 @@
 // -> Auflösung. Ausgewertet wird zentral auf dem Beamer, das Handy zeigt nur an.
 import { verbinden, testmodus, fehlerAnzeigen, verbindungsHinweis } from "./backend.js";
 import { SPIEL, CHARAKTERE, RUNDEN, WERTE } from "./content.js";
-import { neuerSpieler, optionErlaubt, sperrgrund, schicksal, normal, charakter, kostenText } from "./engine.js";
+import { neuerSpieler, optionErlaubt, sperrgrund, schicksal, normal, charakter, kostenText, kopie } from "./engine.js";
 
 const app = document.getElementById("app");
 const params = new URLSearchParams(location.search);
@@ -155,11 +155,31 @@ app.addEventListener("click", async (e) => {
   const b = e.target.closest("[data-opt]");
   if (!b || !ich || status?.phase !== "offen") return;
   const runde = RUNDEN[status.runde];
-  const s = structuredClone(ich);
+  const s = kopie(ich);
   s.wahl[runde.id] = b.dataset.opt;
-  await speichern(s);
-  render();
+  ich = s;
+  render();                            // sofort markieren, dann speichern
+  try {
+    await speichern(s);
+  } catch (err) {
+    fehlerkasten("Deine Wahl konnte nicht gespeichert werden. Bitte nochmal tippen. (" + err.message + ")");
+  }
 });
+
+// Fehler sichtbar machen statt still nichts zu tun
+function fehlerkasten(text) {
+  let el = document.getElementById("fehler");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "fehler";
+    el.className = "offline";
+    el.style.top = "auto"; el.style.bottom = "0";
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+}
+window.addEventListener("error", (e) => fehlerkasten("Fehler: " + e.message));
+window.addEventListener("unhandledrejection", (e) => fehlerkasten("Fehler: " + (e.reason?.message || e.reason)));
 
 async function start() {
   if (testmodus) document.body.insertAdjacentHTML("beforeend", `<div class="testmodus">Testmodus</div>`);

@@ -83,7 +83,7 @@ function render() {
       <p class="frage">${esc(SPIEL.schlussfrage)}</p>`;
   } else if (status.phase === "ende") {
     const f = {};
-    for (const s of alle) (f[schicksal(s).id] ??= []).push(s);
+    for (const s of alle) { const id = schicksal(s).id; (f[id] = f[id] || []).push(s); }
     const tote = alle.filter((s) => s.tot).length;
     inhalt = `<h1>Wie ist es euch ergangen?</h1>
       ${balken(SCHICKSALE.filter((x) => f[x.id]).map((x) => [`${x.emoji} ${esc(x.titel)}`, f[x.id].length]), alle.length)}
