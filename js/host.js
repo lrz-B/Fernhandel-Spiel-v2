@@ -4,9 +4,9 @@
 //   -> Lösung aufdecken (Schicksale) -> Rangliste zeigen
 // Beim Aufdecken rechnet der Beamer die Ergebnisse ALLER Spieler aus und speichert sie.
 // So zählen auch Handys, die gerade gesperrt oder offline sind.
-import { verbinden, testmodus, fehlerAnzeigen, verbindungsHinweis } from "./backend.js";
-import { SPIEL, CHARAKTERE, RUNDEN, SCHICKSALE } from "./content.js";
-import { schicksal, normal, aufloesen } from "./engine.js";
+import { verbinden, testmodus, fehlerAnzeigen, verbindungsHinweis } from "./backend.js?v=3";
+import { SPIEL, CHARAKTERE, RUNDEN, SCHICKSALE } from "./content.js?v=3";
+import { schicksal, normal, aufloesen } from "./engine.js?v=3";
 
 const app = document.getElementById("app");
 const steuerung = document.getElementById("steuerung");

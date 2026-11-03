@@ -1,9 +1,9 @@
 // Spielerseite (Handy).
 // Ablauf: Name eingeben -> Entscheidungen (solange die Spielleitung die Runde offen hat)
 // -> Auflösung. Ausgewertet wird zentral auf dem Beamer, das Handy zeigt nur an.
-import { verbinden, testmodus, fehlerAnzeigen, verbindungsHinweis } from "./backend.js";
-import { SPIEL, CHARAKTERE, RUNDEN, WERTE } from "./content.js";
-import { neuerSpieler, optionErlaubt, sperrgrund, schicksal, normal, charakter, kostenText, kopie } from "./engine.js";
+import { verbinden, testmodus, fehlerAnzeigen, verbindungsHinweis } from "./backend.js?v=3";
+import { SPIEL, CHARAKTERE, RUNDEN, WERTE } from "./content.js?v=3";
+import { neuerSpieler, optionErlaubt, sperrgrund, schicksal, normal, charakter, kostenText, kopie } from "./engine.js?v=3";
 
 const app = document.getElementById("app");
 const params = new URLSearchParams(location.search);

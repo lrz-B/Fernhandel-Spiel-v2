@@ -1,6 +1,6 @@
 // Spiellogik: prüft Optionen, würfelt Ausgänge, bestimmt das Schicksal.
 // Inhalte kommen ausschließlich aus content.js.
-import { CHARAKTERE, RUNDEN, SCHICKSALE, WERTE } from "./content.js";
+import { CHARAKTERE, RUNDEN, SCHICKSALE, WERTE } from "./content.js?v=3";
 
 // Tiefe Kopie, läuft auch auf älteren Handys (structuredClone erst ab iOS 15.4)
 export const kopie = (x) => JSON.parse(JSON.stringify(x));

@@ -1,8 +1,8 @@
 // Demo: Beamer + vier Handys in einem Fenster, dazu Bot-Spieler.
 // Nur für den Testmodus gedacht. Für das echte Spiel nicht nötig.
-import { verbinden } from "./backend.js";
-import { CHARAKTERE, RUNDEN } from "./content.js";
-import { neuerSpieler, optionErlaubt, normal } from "./engine.js";
+import { verbinden } from "./backend.js?v=3";
+import { CHARAKTERE, RUNDEN } from "./content.js?v=3";
+import { neuerSpieler, optionErlaubt, normal } from "./engine.js?v=3";
 
 const BOTS = 20;
 const NAMEN = ["Hinrich", "Gesa", "Tidemann", "Wobbeke", "Gerd", "Alheyd", "Johann", "Margarete", "Hermen", "Tale",
