@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spiel einrichten</title>
+<style>
+  :root { --bg:#f6f0e3; --karte:#fffdf8; --tinte:#2b2118; --leise:#7a6a58; --akzent:#8c2f1b; --rand:#e2d6c0; --ok:#2f7d4a; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--tinte); font:17px/1.5 system-ui,"Segoe UI",sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1 { font-family: Georgia, serif; margin: 0 0 4px; }
+  .unter { color: var(--leise); margin: 0 0 18px; }
+  section { background:var(--karte); border:1px solid var(--rand); border-radius:14px; padding:14px 18px; margin:14px 0; }
+  h2 { font-family: Georgia, serif; font-size: 1.25em; margin: 0 0 8px; color: var(--akzent); }
+  label { display:flex; gap:10px; align-items:flex-start; padding:5px 0; cursor:pointer; }
+  input[type=checkbox] { width:20px; height:20px; margin-top:3px; flex:none; accent-color: var(--ok); }
+  label:has(input:checked) span { color: var(--leise); text-decoration: line-through; }
+  b.k { background:#f3dfd6; border-radius:5px; padding:0 5px; }
+  pre { background:#2b2118; color:#f6f0e3; padding:12px; border-radius:10px; overflow:auto; font-size:14px; margin:8px 0; }
+  button { font:inherit; border:0; border-radius:8px; background:var(--akzent); color:#fff; padding:6px 14px; cursor:pointer; font-weight:600; }
+  .hinweis { background:#fff3c4; border-radius:10px; padding:8px 12px; font-size:.95em; }
+  a { color: var(--akzent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Spiel einrichten</h1>
+  <p class="unter">Kaufleute, Koggen und die Pest · etwa 15 Minuten · Häkchen setzen, wenn erledigt</p>
+
+  <section>
+    <h2>1. Firebase-Projekt (Bildschirm 1, Browser)</h2>
+    <label><input type="checkbox"><span>Auf <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> mit deinem Google-Konto anmelden</span></label>
+    <label><input type="checkbox"><span><b class="k">Projekt erstellen</b> → Name <b class="k">fernhandel-spiel</b> → Google Analytics <b>aus</b> → erstellen</span></label>
+    <label><input type="checkbox"><span>Links: <b class="k">Build → Realtime Database</b> (nicht Firestore!) → <b class="k">Datenbank erstellen</b></span></label>
+    <label><input type="checkbox"><span>Standort <b class="k">Belgien (europe-west1)</b> → <b class="k">Im gesperrten Modus starten</b></span></label>
+  </section>
+
+  <section>
+    <h2>2. Regeln setzen</h2>
+    <label><input type="checkbox"><span>In der Datenbank Reiter <b class="k">Regeln</b> → alles löschen → diesen Text einfügen → <b class="k">Veröffentlichen</b></span></label>
+    <pre id="regeln">{
+  "rules": {
+    "spiele": {
+      "$code": {
+        ".read": true,
+        "status": { ".write": true },
+        "spieler": { "$id": { ".write": true } }
+      }
+    }
+  }
+}</pre>
+    <button onclick="kopieren()">Regeln kopieren</button> <span id="kopiert"></span>
+  </section>
+
+  <section>
+    <h2>3. Web-App registrieren</h2>
+    <label><input type="checkbox"><span>Links im Menü <b class="k">Einstellungen</b> (Zahnrad) → <b class="k">Allgemein</b></span></label>
+    <label><input type="checkbox"><span>Ganz unten bei „Meine Apps“ auf <b class="k">&lt;/&gt;</b> klicken → Name egal → Hosting <b>nicht</b> ankreuzen → registrieren</span></label>
+    <label><input type="checkbox"><span>Den Block <b class="k">const firebaseConfig = { … }</b> kopieren und <b>Claude in den Chat schicken</b></span></label>
+    <p class="hinweis">Prüfen: Im Block steht eine Zeile <b>databaseURL</b>. Fehlt sie, wurde Schritt 1 (Realtime Database) übersprungen. Der Block ist kein Passwort.</p>
+  </section>
+
+  <section>
+    <h2>4. Online stellen (Bildschirm 1, GitHub Desktop)</h2>
+    <p class="hinweis">Erst machen, wenn Claude die Firebase-Daten eingetragen hat.</p>
+    <label><input type="checkbox"><span>In GitHub Desktop angemeldet? Sonst <b class="k">File → Options → Accounts → Sign in</b></span></label>
+    <label><input type="checkbox"><span><b class="k">File → Add local repository</b> → Ordner <b class="k">Desktop\Fernhandel-Spiel-v2</b> → Add repository</span></label>
+    <label><input type="checkbox"><span><b class="k">Publish repository</b> → Haken bei <b>„Keep this code private“ entfernen</b> → Publish</span></label>
+    <label><input type="checkbox"><span>Auf github.com im neuen Repository: <b class="k">Settings → Pages</b> → Branch <b class="k">main</b>, Ordner <b class="k">/ (root)</b> → <b class="k">Save</b></span></label>
+    <label><input type="checkbox"><span>1–2 Minuten warten, dann die Adresse von der Pages-Seite an Claude schicken</span></label>
+  </section>
+
+  <section>
+    <h2>5. Test</h2>
+    <label><input type="checkbox"><span><b class="k">…/host.html</b> am Laptop öffnen, QR-Code mit dem Handy scannen, beitreten</span></label>
+    <label><input type="checkbox"><span>Einmal komplett durchklicken bis zur Rangliste</span></label>
+  </section>
+</main>
+<script>
+  // Häkchen merken (nur in diesem Browser)
+  const boxen = [...document.querySelectorAll("input[type=checkbox]")];
+  let gespeichert = [];
+  try { gespeichert = JSON.parse(localStorage.getItem("einrichten") || "[]"); } catch {}
+  boxen.forEach((b, i) => {
+    b.checked = !!gespeichert[i];
+    b.onchange = () => { try { localStorage.setItem("einrichten", JSON.stringify(boxen.map((x) => x.checked))); } catch {} };
+  });
+  function kopieren() {
+    navigator.clipboard.writeText(document.getElementById("regeln").textContent)
+      .then(() => { document.getElementById("kopiert").textContent = "✓ kopiert"; });
+  }
+</script>
+</body>
+</html>

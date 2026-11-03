@@ -169,7 +169,7 @@ function beobachten() {
 async function neuesSpiel() {
   code = neuerCode();
   localStorage.setItem("ks:host", code);
-  await db.setzen(`spiele/${code}`, { status: { runde: -1, phase: "lobby" } });
+  await db.setzen(`spiele/${code}/status`, { runde: -1, phase: "lobby" });
   beobachten();
 }
 
