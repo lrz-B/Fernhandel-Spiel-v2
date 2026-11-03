@@ -4,7 +4,8 @@
 // Datenmodell:
 //   spiele/<code>/status            { runde: -1..n, phase: "lobby"|"offen"|"ende", endetUm }
 //   spiele/<code>/spieler/<id>      Spielerzustand (siehe engine.neuerSpieler)
-import { FIREBASE_CONFIG } from "./config.js?v=3";
+import { FIREBASE_CONFIG, SPIELCODE } from "./config.js?v=4";
+export { SPIELCODE };
 
 export const testmodus = !FIREBASE_CONFIG;
 

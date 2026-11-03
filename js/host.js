@@ -4,13 +4,15 @@
 //   -> Lösung aufdecken (Schicksale) -> Rangliste zeigen
 // Beim Aufdecken rechnet der Beamer die Ergebnisse ALLER Spieler aus und speichert sie.
 // So zählen auch Handys, die gerade gesperrt oder offline sind.
-import { verbinden, testmodus, fehlerAnzeigen, verbindungsHinweis } from "./backend.js?v=3";
-import { SPIEL, CHARAKTERE, RUNDEN, SCHICKSALE } from "./content.js?v=3";
-import { schicksal, normal, aufloesen } from "./engine.js?v=3";
+import { verbinden, testmodus, fehlerAnzeigen, verbindungsHinweis, SPIELCODE } from "./backend.js?v=4";
+import { SPIEL, CHARAKTERE, RUNDEN, SCHICKSALE } from "./content.js?v=4";
+import { schicksal, normal, aufloesen } from "./engine.js?v=4";
 
 const app = document.getElementById("app");
 const steuerung = document.getElementById("steuerung");
 let db, code, status = null, spieler = {};
+// Fester Code (config.js), außer auf der Demo-Seite (?demo): Die bekommt immer ein eigenes Spiel.
+const FEST = new URLSearchParams(location.search).has("demo") ? null : SPIELCODE;
 
 // Runden mit Entscheidung (ohne die automatischen Ereignisse am Ende)
 const SPIELRUNDEN = RUNDEN.map((r, i) => ({ r, i })).filter((x) => !x.r.amEnde);
@@ -25,6 +27,8 @@ function neuerCode() {
 }
 
 function spielerUrl() {
+  // Mit festem Code reicht die kurze Adresse, der Code ist dann eingebaut
+  if (FEST && code === FEST) return new URL(".", location.href).href;
   const u = new URL("index.html", location.href);
   u.search = "?code=" + code;
   return u.href;
@@ -56,8 +60,9 @@ function render() {
     inhalt = `<div class="lobby">
       <div>
         <h1>${esc(SPIEL.titel)}</h1><p class="unter">${esc(SPIEL.untertitel)}</p>
-        <p class="beitritt">Handy raus! QR-Code scannen<br>oder Code eingeben: <b class="code">${code}</b></p>
-        <p class="url">${esc(spielerUrl())}</p>
+        ${FEST && code === FEST
+          ? `<p class="beitritt">Handy raus! QR-Code scannen<br>oder eingeben:</p><p class="code adresse">${esc(spielerUrl().replace(/^https?:\/\//, "").replace(/\/$/, ""))}</p>`
+          : `<p class="beitritt">Handy raus! QR-Code scannen<br>oder Code eingeben: <b class="code">${code}</b></p><p class="url">${esc(spielerUrl())}</p>`}
       </div>
       <div id="qr"></div>
     </div>
@@ -136,7 +141,7 @@ function renderSteuerung() {
     <button id="neu" class="leise">Neues Spiel</button>`;
   document.getElementById("weiter")?.addEventListener("click", weiter);
   document.getElementById("neu").onclick = () => {
-    if (confirm("Neues Spiel starten? Alle Spieler müssen neu beitreten.")) neuesSpiel();
+    if (confirm("Neues Spiel starten? Alle bisherigen Spieler werden entfernt und müssen neu beitreten.")) neuesSpiel();
   };
 }
 
@@ -167,7 +172,14 @@ function beobachten() {
 }
 
 async function neuesSpiel() {
-  code = neuerCode();
+  if (FEST) {
+    code = FEST;
+    // alte Spieler einzeln löschen (die Regeln erlauben nur Schreiben pro Spieler)
+    const alt = (await db.lesen(`spiele/${code}/spieler`)) || {};
+    await Promise.all(Object.keys(alt).map((id) => db.setzen(`spiele/${code}/spieler/${id}`, null)));
+  } else {
+    code = neuerCode();
+  }
   localStorage.setItem("ks:host", code);
   await db.setzen(`spiele/${code}/status`, { runde: -1, phase: "lobby" });
   beobachten();
@@ -181,7 +193,7 @@ async function start() {
     return fehlerAnzeigen(app);
   }
   verbindungsHinweis(db);
-  code = localStorage.getItem("ks:host");
+  code = FEST || localStorage.getItem("ks:host");
   if (!code || !(await db.lesen(`spiele/${code}/status`))) return neuesSpiel();
   beobachten();
 }

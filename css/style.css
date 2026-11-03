@@ -111,3 +111,4 @@ input {
 .rangliste .rang { font-weight: 700; color: var(--akzent); }
 .rangliste .geld { font-weight: 700; color: var(--gold); }
 .platz { font-weight: 700; color: var(--akzent); }
+.code.adresse { font-size: 1.3em; letter-spacing: 0; font-weight: 700; word-break: break-all; margin-top: 0; }

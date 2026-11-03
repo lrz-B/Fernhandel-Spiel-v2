@@ -2,6 +2,10 @@
 // Diese Werte sind kein Geheimnis: Sie stehen bei jeder Firebase-Website im Quelltext.
 // Wer schreiben darf, regeln die Regeln in der Firebase-Konsole.
 // Zum Testmodus zurück (nur Tabs auf einem Gerät): FIREBASE_CONFIG = null setzen.
+// Fester Spielcode: Der QR-Code bleibt dadurch immer gleich und kann auf eine Folie.
+// „Neues Spiel“ am Beamer leert dann nur dieses Spiel. null = jedes Spiel bekommt einen Zufallscode.
+export const SPIELCODE = "PEST";
+
 export const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBj2KGp-P1H-4IQModr3qvi3wXu8PbU-Gs",
   authDomain: "fernhandel-spiel.firebaseapp.com",

@@ -1,13 +1,13 @@
 // Spielerseite (Handy).
 // Ablauf: Name eingeben -> Entscheidungen (solange die Spielleitung die Runde offen hat)
 // -> Auflösung. Ausgewertet wird zentral auf dem Beamer, das Handy zeigt nur an.
-import { verbinden, testmodus, fehlerAnzeigen, verbindungsHinweis } from "./backend.js?v=3";
-import { SPIEL, CHARAKTERE, RUNDEN, WERTE } from "./content.js?v=3";
-import { neuerSpieler, optionErlaubt, sperrgrund, schicksal, normal, charakter, kostenText, kopie } from "./engine.js?v=3";
+import { verbinden, testmodus, fehlerAnzeigen, verbindungsHinweis, SPIELCODE } from "./backend.js?v=4";
+import { SPIEL, CHARAKTERE, RUNDEN, WERTE } from "./content.js?v=4";
+import { neuerSpieler, optionErlaubt, sperrgrund, schicksal, normal, charakter, kostenText, kopie } from "./engine.js?v=4";
 
 const app = document.getElementById("app");
 const params = new URLSearchParams(location.search);
-const code = (params.get("code") || "").toUpperCase();
+const code = (params.get("code") || SPIELCODE || "").toUpperCase();
 let db, status = null, ich = null;
 let gewaehlterCharakter = null;
 
@@ -203,6 +203,11 @@ async function start() {
     const j = JSON.stringify(s);
     if (j === letztesIch) return;
     letztesIch = j;
+    if (!s && ich) {
+      // Spielleitung hat ein neues Spiel gestartet: neu beitreten
+      ich = null;
+      return render();
+    }
     if (!s && !ich) {
       // Demo-Seite: automatisch beitreten
       if (params.get("name") && params.get("char")) return speichern(neuerSpieler(params.get("name"), params.get("char")));
